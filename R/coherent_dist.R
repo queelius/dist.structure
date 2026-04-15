@@ -108,7 +108,10 @@ series_dist <- function(components) {
 
 
 #' @export
-phi.series_dist <- function(x, state) as.integer(all(state == 1L))
+phi.series_dist <- function(x, state) {
+  stopifnot(length(state) == x$m)
+  as.integer(all(state == 1L))
+}
 
 #' @export
 min_paths.series_dist <- function(x) list(seq_len(x$m))
@@ -126,7 +129,7 @@ parallel_dist <- function(components) {
   stopifnot(is.list(components), length(components) >= 1L)
   m <- length(components)
   obj <- coherent_dist(
-    min_paths = lapply(seq_len(m), function(j) j),
+    min_paths = as.list(seq_len(m)),
     components = components,
     m = m
   )
@@ -136,10 +139,13 @@ parallel_dist <- function(components) {
 
 
 #' @export
-phi.parallel_dist <- function(x, state) as.integer(any(state == 1L))
+phi.parallel_dist <- function(x, state) {
+  stopifnot(length(state) == x$m)
+  as.integer(any(state == 1L))
+}
 
 #' @export
-min_paths.parallel_dist <- function(x) lapply(seq_len(x$m), as.integer)
+min_paths.parallel_dist <- function(x) as.list(seq_len(x$m))
 
 
 #' k-out-of-n system distribution
@@ -201,12 +207,13 @@ bridge_dist <- function(components) {
 }
 
 
-#' Consecutive-k-out-of-n system distribution
+#' Consecutive-k-out-of-n system distribution (type G)
 #'
-#' The system fails if any `k` consecutive components fail. The structure
-#' functions when at least one block of `k` consecutive components all
-#' function; minimal path sets are the `n - k + 1` consecutive blocks of
-#' size `k`.
+#' The consecutive-k-out-of-n:G system functions when at least one block
+#' of `k` consecutive components all function. Minimal path sets are the
+#' `n - k + 1` consecutive blocks of size `k`. (Note: this is the :G
+#' variant; the :F variant, "fails when any `k` consecutive fail", has
+#' different minimal paths.)
 #'
 #' @param k Block size.
 #' @param components List of `dist` objects (length `n`).

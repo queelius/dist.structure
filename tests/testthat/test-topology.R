@@ -50,6 +50,29 @@ test_that("min_cuts defaults via Berge transversal from min_paths", {
 })
 
 
+test_that("min_cuts returns distinct sets (no duplicates) for kofn", {
+  # k-of-n where k > 1 and m > k + 1 used to produce duplicates because
+  # the Berge-transversal extension generates equal-length transversals
+  # through independent paths. 2-of-3 has exactly 3 min cuts: all pairs.
+  sys <- kofn_dist(k = 2L, iid_exp_components(3))
+  cuts <- min_cuts(sys)
+  expect_equal(length(cuts), 3L)
+  # Verify distinct
+  expect_equal(length(unique(cuts)), length(cuts))
+  # Each cut is a pair (size m - k + 1 = 2)
+  expect_true(all(vapply(cuts, length, integer(1L)) == 2L))
+})
+
+
+test_that("min_cuts of bridge has exactly 4 distinct sets", {
+  # Classical bridge: cuts = {1,2}, {4,5}, {1,3,5}, {2,3,4}
+  sys <- bridge_dist(iid_exp_components(5))
+  cuts <- min_cuts(sys)
+  expect_equal(length(cuts), 4L)
+  expect_equal(length(unique(cuts)), 4L)
+})
+
+
 test_that("critical_states default returns expected count for k-of-m", {
   # For k-of-m, component j is critical iff exactly (k-1) of the other
   # (m-1) components are functioning.

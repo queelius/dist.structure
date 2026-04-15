@@ -72,14 +72,11 @@ cdf.wei_series <- function(x, ...) {
 #' @rdname wei_series
 #' @export
 sampler.wei_series <- function(x, ...) {
-  shapes <- x$shapes
-  scales <- x$scales
-  m <- length(shapes)
+  samplers <- Map(
+    function(sh, sc) function(n) stats::rweibull(n, shape = sh, scale = sc),
+    x$shapes, x$scales
+  )
   function(n, ...) {
-    mat <- vapply(seq_len(m), function(j) {
-      stats::rweibull(n, shape = shapes[j], scale = scales[j])
-    }, numeric(n))
-    if (!is.matrix(mat)) mat <- matrix(mat, nrow = n)
-    apply(mat, 1L, min)
+    apply(sample_component_matrix(samplers, n), 1L, min)
   }
 }

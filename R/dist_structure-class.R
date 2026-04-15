@@ -35,17 +35,19 @@ is_dist_structure <- function(x) inherits(x, "dist_structure")
 #' @return Character vector suitable for [cat()].
 #' @export
 format.dist_structure <- function(x, ...) {
-  cls <- setdiff(class(x), c("dist_structure", "univariate_dist", "dist"))
+  cls <- setdiff(class(x),
+                 c("dist_structure", "univariate_dist",
+                   "continuous_dist", "dist"))
   head <- if (length(cls)) {
     paste0("<dist_structure: ", cls[[1L]], ">")
   } else {
     "<dist_structure>"
   }
   m <- tryCatch(ncomponents(x), error = function(e) NA_integer_)
-  body <- if (!is.na(m)) {
-    paste0("  components: ", m)
-  } else {
+  body <- if (is.na(m)) {
     "  components: (ncomponents method not defined)"
+  } else {
+    paste0("  components: ", m)
   }
   c(head, body)
 }

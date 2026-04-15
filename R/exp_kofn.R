@@ -46,22 +46,9 @@ exp_kofn <- function(k, rates) {
 surv.exp_kofn <- function(x, ...) {
   rates <- x$rates
   k <- x$k
-  m <- length(rates)
   function(t, ...) {
     vapply(t, function(ti) {
-      comp_surv <- exp(-rates * ti)
-      comp_fail <- 1 - comp_surv
-      total <- 0
-      for (sz in k:m) {
-        subsets <- utils::combn(m, sz, simplify = FALSE)
-        for (A in subsets) {
-          alive <- prod(comp_surv[A])
-          failed <- setdiff(seq_len(m), A)
-          dead <- if (length(failed) == 0L) 1 else prod(comp_fail[failed])
-          total <- total + alive * dead
-        }
-      }
-      total
+      kofn_surv_probability(exp(-rates * ti), k)
     }, numeric(1L))
   }
 }
@@ -79,14 +66,10 @@ cdf.exp_kofn <- function(x, ...) {
 #' @export
 sampler.exp_kofn <- function(x, ...) {
   rates <- x$rates
-  k <- x$k
-  m <- length(rates)
-  order_idx <- m - k + 1L
+  order_idx <- length(rates) - x$k + 1L
+  samplers <- lapply(rates, function(r) function(n) stats::rexp(n, rate = r))
   function(n, ...) {
-    mat <- vapply(seq_len(m), function(j) {
-      stats::rexp(n, rate = rates[j])
-    }, numeric(n))
-    if (!is.matrix(mat)) mat <- matrix(mat, nrow = n)
-    apply(mat, 1L, function(row) sort(row)[order_idx])
+    apply(sample_component_matrix(samplers, n), 1L,
+          function(row) sort(row)[order_idx])
   }
 }

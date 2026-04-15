@@ -59,8 +59,12 @@ min_cuts <- function(x) UseMethod("min_cuts")
 #' System signature
 #'
 #' Samaniego's signature: `s = (s_1, ..., s_m)` where `s_k` is the
-#' probability the system fails at the k-th component failure under i.i.d.
-#' component lifetimes.
+#' probability the system fails at the k-th component failure under
+#' i.i.d. absolutely-continuous component lifetimes. Only depends on the
+#' structure (phi), not on the component distribution. A default method
+#' on `dist_structure` enumerates the `m!` orderings; this is feasible
+#' for `m` up to about 8 or 9. Specialized subclasses should override
+#' with closed-form expressions.
 #'
 #' @param x A [dist_structure] object.
 #' @return Numeric vector of length `ncomponents(x)` summing to 1.

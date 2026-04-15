@@ -40,16 +40,6 @@ exp_parallel <- function(rates) {
 #' @param x An `exp_parallel` object.
 #' @param ... Ignored.
 #' @export
-surv.exp_parallel <- function(x, ...) {
-  rates <- x$rates
-  function(t, ...) {
-    vapply(t, function(ti) 1 - prod(1 - exp(-rates * ti)), numeric(1L))
-  }
-}
-
-
-#' @rdname exp_parallel
-#' @export
 cdf.exp_parallel <- function(x, ...) {
   rates <- x$rates
   function(t, ...) {
@@ -60,15 +50,19 @@ cdf.exp_parallel <- function(x, ...) {
 
 #' @rdname exp_parallel
 #' @export
+surv.exp_parallel <- function(x, ...) {
+  FF <- cdf.exp_parallel(x)
+  function(t, ...) 1 - FF(t)
+}
+
+
+#' @rdname exp_parallel
+#' @export
 sampler.exp_parallel <- function(x, ...) {
   rates <- x$rates
-  m <- length(rates)
+  samplers <- lapply(rates, function(r) function(n) stats::rexp(n, rate = r))
   function(n, ...) {
-    mat <- vapply(seq_len(m), function(j) {
-      stats::rexp(n, rate = rates[j])
-    }, numeric(n))
-    if (!is.matrix(mat)) mat <- matrix(mat, nrow = n)
-    apply(mat, 1L, max)
+    apply(sample_component_matrix(samplers, n), 1L, max)
   }
 }
 
@@ -78,6 +72,11 @@ sampler.exp_parallel <- function(x, ...) {
 mean.exp_parallel <- function(x, ...) {
   rates <- x$rates
   m <- length(rates)
+  # Fast path: iid components. E[max of m iid Exp(lambda)] = H_m / lambda.
+  if (length(unique(rates)) == 1L) {
+    return(sum(1 / seq_len(m)) / rates[[1L]])
+  }
+  # General heterogeneous case: inclusion-exclusion over 2^m - 1 subsets.
   total <- 0
   for (sz in seq_len(m)) {
     subsets <- utils::combn(m, sz, simplify = FALSE)

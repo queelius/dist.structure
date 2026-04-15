@@ -55,14 +55,7 @@ sampler.dist_structure <- function(x, ...) {
     algebraic.dist::sampler(component(x, j))
   })
   function(n, ...) {
-    comp_matrix <- vapply(
-      comp_samplers,
-      function(samp) samp(n),
-      numeric(n)
-    )
-    if (!is.matrix(comp_matrix)) {
-      comp_matrix <- matrix(comp_matrix, nrow = n, ncol = m)
-    }
-    apply(comp_matrix, 1, function(times) system_lifetime(x, times))
+    comp_matrix <- sample_component_matrix(comp_samplers, n)
+    apply(comp_matrix, 1L, function(times) system_lifetime(x, times))
   }
 }

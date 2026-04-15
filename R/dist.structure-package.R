@@ -52,4 +52,5 @@
 #' releases.
 #'
 #' @keywords internal
+#' @importFrom algebraic.dist cdf sampler surv
 "_PACKAGE"

@@ -48,22 +48,9 @@ surv.wei_kofn <- function(x, ...) {
   shapes <- x$shapes
   scales <- x$scales
   k <- x$k
-  m <- length(shapes)
   function(t, ...) {
     vapply(t, function(ti) {
-      comp_surv <- exp(-(ti / scales)^shapes)
-      comp_fail <- 1 - comp_surv
-      total <- 0
-      for (sz in k:m) {
-        subsets <- utils::combn(m, sz, simplify = FALSE)
-        for (A in subsets) {
-          alive <- prod(comp_surv[A])
-          failed <- setdiff(seq_len(m), A)
-          dead <- if (length(failed) == 0L) 1 else prod(comp_fail[failed])
-          total <- total + alive * dead
-        }
-      }
-      total
+      kofn_surv_probability(exp(-(ti / scales)^shapes), k)
     }, numeric(1L))
   }
 }
@@ -80,16 +67,13 @@ cdf.wei_kofn <- function(x, ...) {
 #' @rdname wei_kofn
 #' @export
 sampler.wei_kofn <- function(x, ...) {
-  shapes <- x$shapes
-  scales <- x$scales
-  k <- x$k
-  m <- length(shapes)
-  order_idx <- m - k + 1L
+  order_idx <- length(x$shapes) - x$k + 1L
+  samplers <- Map(
+    function(sh, sc) function(n) stats::rweibull(n, shape = sh, scale = sc),
+    x$shapes, x$scales
+  )
   function(n, ...) {
-    mat <- vapply(seq_len(m), function(j) {
-      stats::rweibull(n, shape = shapes[j], scale = scales[j])
-    }, numeric(n))
-    if (!is.matrix(mat)) mat <- matrix(mat, nrow = n)
-    apply(mat, 1L, function(row) sort(row)[order_idx])
+    apply(sample_component_matrix(samplers, n), 1L,
+          function(row) sort(row)[order_idx])
   }
 }
