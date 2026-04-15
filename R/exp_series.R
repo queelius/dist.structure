@@ -65,3 +65,22 @@ sampler.exp_series <- function(x, ...) {
 #' @rdname exp_series
 #' @export
 mean.exp_series <- function(x, ...) 1 / x$total_rate
+
+
+#' @rdname exp_series
+#' @importFrom stats dexp
+#' @export
+density.exp_series <- function(x, ...) {
+  lam <- x$total_rate
+  function(t, log = FALSE, ...) stats::dexp(t, rate = lam, log = log)
+}
+
+
+#' @rdname exp_series
+#' @export
+hazard.exp_series <- function(x, ...) {
+  lam <- x$total_rate
+  function(t, log.p = FALSE, ...) {
+    rep(if (isTRUE(log.p)) log(lam) else lam, length(t))
+  }
+}

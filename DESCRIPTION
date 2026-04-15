@@ -1,6 +1,6 @@
 Package: dist.structure
 Title: Structured Random Variables for Reliability System Distributions
-Version: 0.4.0
+Version: 0.4.1
 Authors@R: person("Alexander", "Towell",
     email = "lex@metafunctor.com",
     role = c("aut", "cre"),
