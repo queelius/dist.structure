@@ -232,7 +232,7 @@ compose_systems <- function(outer, inner_list) {
 
 #' Coerce to dist_structure
 #'
-#' Wraps a plain [algebraic.dist::dist] in a 1-component [series_dist]
+#' Wraps a plain `algebraic.dist` distribution in a 1-component [series_dist]
 #' so that it satisfies the dist_structure protocol. Useful for
 #' polymorphic code that operates on dist_structure inputs but is also
 #' handed unwrapped distributions. A `dist_structure` is returned

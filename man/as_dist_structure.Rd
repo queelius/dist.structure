@@ -21,7 +21,7 @@ as_dist_structure(x, ...)
 A \link{dist_structure} object.
 }
 \description{
-Wraps a plain \link[algebraic.dist:dist]{algebraic.dist::dist} in a 1-component \link{series_dist}
+Wraps a plain \code{algebraic.dist} distribution in a 1-component \link{series_dist}
 so that it satisfies the dist_structure protocol. Useful for
 polymorphic code that operates on dist_structure inputs but is also
 handed unwrapped distributions. A \code{dist_structure} is returned

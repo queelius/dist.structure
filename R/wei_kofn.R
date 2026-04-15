@@ -78,7 +78,7 @@ sampler.wei_kofn <- function(x, ...) {
 
 
 #' @rdname wei_kofn
-#' @importFrom stats dweibull
+#' @importFrom stats density dweibull
 #' @export
 density.wei_kofn <- function(x, ...) {
   shapes <- x$shapes

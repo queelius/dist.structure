@@ -75,7 +75,7 @@ sampler.exp_kofn <- function(x, ...) {
 
 
 #' @rdname exp_kofn
-#' @importFrom stats dexp
+#' @importFrom stats density dexp
 #' @export
 density.exp_kofn <- function(x, ...) {
   rates <- x$rates

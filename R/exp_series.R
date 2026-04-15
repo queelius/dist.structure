@@ -68,7 +68,7 @@ mean.exp_series <- function(x, ...) 1 / x$total_rate
 
 
 #' @rdname exp_series
-#' @importFrom stats dexp
+#' @importFrom stats density dexp
 #' @export
 density.exp_series <- function(x, ...) {
   lam <- x$total_rate
