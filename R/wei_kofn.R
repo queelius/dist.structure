@@ -75,3 +75,24 @@ sampler.wei_kofn <- function(x, ...) {
           function(row) sort(row)[order_idx])
   }
 }
+
+
+#' @rdname wei_kofn
+#' @importFrom stats dweibull
+#' @export
+density.wei_kofn <- function(x, ...) {
+  shapes <- x$shapes
+  scales <- x$scales
+  k <- x$k
+  m <- length(shapes)
+  function(t, log = FALSE, ...) {
+    vals <- vapply(t, function(ti) {
+      surv <- exp(-(ti / scales)^shapes)
+      dens <- vapply(seq_len(m), function(j) {
+        stats::dweibull(ti, shape = shapes[j], scale = scales[j])
+      }, numeric(1L))
+      kofn_density_value(dens, surv, k)
+    }, numeric(1L))
+    if (isTRUE(log)) log(vals) else vals
+  }
+}

@@ -72,3 +72,20 @@ sampler.exp_kofn <- function(x, ...) {
           function(row) sort(row)[order_idx])
   }
 }
+
+
+#' @rdname exp_kofn
+#' @importFrom stats dexp
+#' @export
+density.exp_kofn <- function(x, ...) {
+  rates <- x$rates
+  k <- x$k
+  function(t, log = FALSE, ...) {
+    vals <- vapply(t, function(ti) {
+      surv <- exp(-rates * ti)
+      dens <- rates * surv
+      kofn_density_value(dens, surv, k)
+    }, numeric(1L))
+    if (isTRUE(log)) log(vals) else vals
+  }
+}

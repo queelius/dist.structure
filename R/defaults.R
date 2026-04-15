@@ -57,6 +57,41 @@ kofn_surv_probability <- function(comp_surv, k) {
 }
 
 
+# Aggregate density for a k-of-m system at a single time point, given
+# per-component densities f_j(t), survivals S_j(t), and CDFs F_j(t) =
+# 1 - S_j(t). Uses the critical-state formula:
+#   f_sys(t) = sum_{j=1}^m f_j(t) * P(component j is critical at t)
+# where j is critical iff exactly (k - 1) of the other components are
+# alive (so j's failure at t drops the alive count from k to k - 1,
+# triggering system failure). Shared by exp_kofn and wei_kofn density
+# methods.
+kofn_density_value <- function(comp_dens, comp_surv, k) {
+  m <- length(comp_surv)
+  comp_fail <- 1 - comp_surv
+  total <- 0
+  for (j in seq_len(m)) {
+    others <- setdiff(seq_len(m), j)
+    p_crit <- 0
+    if (k == 1L) {
+      # Need 0 others alive.
+      p_crit <- prod(comp_fail[others])
+    } else if (k - 1L > length(others)) {
+      p_crit <- 0
+    } else {
+      subsets <- utils::combn(others, k - 1L, simplify = FALSE)
+      for (B in subsets) {
+        alive_term <- if (length(B) == 0L) 1 else prod(comp_surv[B])
+        dead_idx <- setdiff(others, B)
+        dead_term <- if (length(dead_idx) == 0L) 1 else prod(comp_fail[dead_idx])
+        p_crit <- p_crit + alive_term * dead_term
+      }
+    }
+    total <- total + comp_dens[j] * p_crit
+  }
+  total
+}
+
+
 # Collect n samples from each of m component samplers into an n-by-m
 # matrix. Handles the n == 1 / m == 1 edge cases where vapply would
 # otherwise drop dimensions.

@@ -138,6 +138,90 @@ test_that("exp_parallel and exp_kofn agree on surv at k = 1", {
 })
 
 
+test_that("density.exp_kofn integrates to 1", {
+  for (params in list(list(k = 2L, rates = c(1, 1, 1)),
+                      list(k = 1L, rates = c(0.5, 1)),
+                      list(k = 3L, rates = c(0.5, 1, 2, 0.7)))) {
+    sys <- exp_kofn(params$k, params$rates)
+    f <- density(sys)
+    integral <- stats::integrate(f, 0, Inf, rel.tol = 1e-8)$value
+    expect_equal(integral, 1, tolerance = 1e-4)
+  }
+})
+
+
+test_that("density.exp_kofn equals -d/dt surv numerically", {
+  sys <- exp_kofn(2L, c(0.5, 1, 1.5))
+  f <- density(sys)
+  S <- algebraic.dist::surv(sys)
+  for (t0 in c(0.3, 0.8, 1.5)) {
+    h <- 1e-5
+    df_dt <- -(S(t0 + h) - S(t0 - h)) / (2 * h)
+    expect_equal(f(t0), df_dt, tolerance = 1e-4)
+  }
+})
+
+
+test_that("density.exp_kofn at k = m matches dexp at sum_rates", {
+  rates <- c(0.5, 0.3, 0.2)
+  sys_kofn <- exp_kofn(3L, rates)
+  sys_series <- exp_series(rates)
+  f1 <- density(sys_kofn)
+  f2 <- density(sys_series)
+  for (t0 in c(0.5, 1, 2)) {
+    expect_equal(f1(t0), f2(t0), tolerance = 1e-10)
+  }
+})
+
+
+test_that("density.exp_kofn at k = 1 matches max-of-iid density", {
+  # k=1 is parallel: f_sys = d/dt prod F_j; for iid Exp(1), m components:
+  # F(t) = 1 - exp(-t), F_sys = (1 - exp(-t))^m,
+  # f_sys = m * (1 - exp(-t))^(m-1) * exp(-t)
+  rates <- rep(1, 3)
+  sys <- exp_kofn(1L, rates)
+  f <- density(sys)
+  for (t0 in c(0.5, 1, 2)) {
+    expected <- 3 * (1 - exp(-t0))^2 * exp(-t0)
+    expect_equal(f(t0), expected, tolerance = 1e-10)
+  }
+})
+
+
+test_that("density.wei_kofn integrates to 1", {
+  for (params in list(list(k = 2L, shapes = c(1.5, 2, 2.5),
+                            scales = c(1, 2, 3)),
+                       list(k = 1L, shapes = c(2, 2),
+                            scales = c(1, 2)))) {
+    sys <- wei_kofn(params$k, params$shapes, params$scales)
+    f <- density(sys)
+    integral <- stats::integrate(f, 0, Inf, rel.tol = 1e-8)$value
+    expect_equal(integral, 1, tolerance = 1e-4)
+  }
+})
+
+
+test_that("density.wei_kofn equals -d/dt surv numerically", {
+  sys <- wei_kofn(2L, shapes = c(2, 2, 2), scales = c(1, 2, 3))
+  f <- density(sys)
+  S <- algebraic.dist::surv(sys)
+  for (t0 in c(0.3, 0.8, 1.5)) {
+    h <- 1e-5
+    df_dt <- -(S(t0 + h) - S(t0 - h)) / (2 * h)
+    expect_equal(f(t0), df_dt, tolerance = 1e-4)
+  }
+})
+
+
+test_that("density methods support log = TRUE", {
+  sys <- exp_kofn(2L, c(1, 1, 1))
+  f <- density(sys)
+  for (t0 in c(0.5, 1, 2)) {
+    expect_equal(f(t0, log = TRUE), log(f(t0)), tolerance = 1e-12)
+  }
+})
+
+
 test_that("exp_kofn surv matches the general default (small m)", {
   rates <- c(1, 2)
   sys_special <- exp_kofn(1L, rates)
