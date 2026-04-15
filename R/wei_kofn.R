@@ -1,0 +1,95 @@
+# ==========================================================================
+# Closed-form k-out-of-n of heterogeneous Weibull components
+# ==========================================================================
+#
+# Same subset-enumeration formula as exp_kofn, with Weibull per-component
+# survivals S_j(t) = exp(-(t / scale_j)^shape_j).
+# ==========================================================================
+
+
+#' k-out-of-n system of independent Weibull components (closed form)
+#'
+#' Constructs a `dist_structure` for a k-out-of-m system whose components
+#' are independent (possibly heterogeneous) Weibulls. Closed-form `surv`,
+#' `cdf`, and `sampler` via subset enumeration and component order
+#' statistics.
+#'
+#' @param k Minimum functioning components for system operation.
+#' @param shapes Positive numeric vector of length `m`.
+#' @param scales Positive numeric vector of length `m`.
+#' @return An object of class
+#'   `c("wei_kofn", "kofn_dist", "coherent_dist", "dist_structure",
+#'   "univariate_dist", "continuous_dist", "dist")`.
+#' @examples
+#' sys <- wei_kofn(k = 2, shapes = c(1, 2, 3), scales = c(1, 2, 3))
+#' algebraic.dist::surv(sys)(1)
+#' @export
+wei_kofn <- function(k, shapes, scales) {
+  stopifnot(length(shapes) == length(scales),
+            all(shapes > 0), all(scales > 0))
+  m <- length(shapes)
+  stopifnot(k >= 1L, k <= m)
+  components <- lapply(seq_len(m), function(j) {
+    algebraic.dist::weibull_dist(shape = shapes[j], scale = scales[j])
+  })
+  obj <- kofn_dist(k, components)
+  obj$shapes <- as.numeric(shapes)
+  obj$scales <- as.numeric(scales)
+  class(obj) <- c("wei_kofn", class(obj))
+  obj
+}
+
+
+#' @rdname wei_kofn
+#' @param x A `wei_kofn` object.
+#' @param ... Ignored.
+#' @export
+surv.wei_kofn <- function(x, ...) {
+  shapes <- x$shapes
+  scales <- x$scales
+  k <- x$k
+  m <- length(shapes)
+  function(t, ...) {
+    vapply(t, function(ti) {
+      comp_surv <- exp(-(ti / scales)^shapes)
+      comp_fail <- 1 - comp_surv
+      total <- 0
+      for (sz in k:m) {
+        subsets <- utils::combn(m, sz, simplify = FALSE)
+        for (A in subsets) {
+          alive <- prod(comp_surv[A])
+          failed <- setdiff(seq_len(m), A)
+          dead <- if (length(failed) == 0L) 1 else prod(comp_fail[failed])
+          total <- total + alive * dead
+        }
+      }
+      total
+    }, numeric(1L))
+  }
+}
+
+
+#' @rdname wei_kofn
+#' @export
+cdf.wei_kofn <- function(x, ...) {
+  S <- surv.wei_kofn(x)
+  function(t, ...) 1 - S(t)
+}
+
+
+#' @rdname wei_kofn
+#' @export
+sampler.wei_kofn <- function(x, ...) {
+  shapes <- x$shapes
+  scales <- x$scales
+  k <- x$k
+  m <- length(shapes)
+  order_idx <- m - k + 1L
+  function(n, ...) {
+    mat <- vapply(seq_len(m), function(j) {
+      stats::rweibull(n, shape = shapes[j], scale = scales[j])
+    }, numeric(n))
+    if (!is.matrix(mat)) mat <- matrix(mat, nrow = n)
+    apply(mat, 1L, function(row) sort(row)[order_idx])
+  }
+}
