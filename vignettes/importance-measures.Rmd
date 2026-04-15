@@ -1,0 +1,173 @@
+---
+title: "Importance measures"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Importance measures}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+```{r setup}
+library(dist.structure)
+library(algebraic.dist)
+```
+
+## Four measures, four questions
+
+Importance measures quantify how much a component matters to system
+reliability. Different definitions answer different questions.
+`dist.structure` provides four classical measures:
+
+| Measure | Question |
+|---|---|
+| Structural | How often is j pivotal across all states of the other components? |
+| Birnbaum (reliability) | At component reliabilities p, how much does dR/dp_j change R? |
+| Criticality | Given the system failed by t, what fraction attributable to j failing and being critical? |
+| Vesely-Fussell | Given the system failed by t, what is the probability that some cut set containing j is fully failed? |
+
+Each reduces to a closed form in simple topologies but diverges on
+complex ones. The bridge network is a canonical case where all four
+matter, so we'll use it throughout.
+
+## Setting up the bridge
+
+```{r}
+sys <- bridge_dist(replicate(5, exponential(1), simplify = FALSE))
+min_paths(sys)
+min_cuts(sys)
+```
+
+Components 1 and 2 appear in two minimal paths each; components 4 and
+5 likewise. Component 3 (the cross-link) appears in two paths but not
+the "primary" ones `{1,4}` and `{2,5}`.
+
+## Structural importance
+
+Structural importance is purely topological: it ignores component
+distributions.
+
+```{r}
+sapply(1:5, function(j) structural_importance(sys, j))
+```
+
+For the bridge, components 1, 2, 4, 5 are structurally equivalent;
+component 3 is less structurally important (smaller fraction of
+pivotal states).
+
+## Birnbaum reliability importance
+
+Birnbaum importance is `dR/dp_j` at given component reliabilities `p`:
+
+```{r}
+p <- 0.9
+sapply(1:5, function(j) birnbaum_importance(sys, j, p))
+```
+
+At iid p = 0.9, the ordering agrees with structural importance (same
+symmetry). Where they diverge is at non-iid p or time-varying p.
+
+## Time-dependent importance via criticality
+
+Criticality importance turns Birnbaum into a time-varying quantity by
+plugging in `p_j(t) = S_j(t)`:
+
+```{r}
+t_vals <- c(0.1, 0.5, 1, 2)
+sapply(t_vals, function(t) {
+  sapply(1:5, function(j) criticality_importance(sys, j, t))
+})
+```
+
+Each column is a time point; each row is a component. Read it as: "at
+time t, what fraction of system-failure probability is attributable to
+component j having failed AND being critical".
+
+At small t (high reliability), the breakdown looks like structural
+importance (because all components have similar F_j(t)). At larger t,
+the contributions of each component to system failure diverge.
+
+## Vesely-Fussell importance
+
+Vesely-Fussell uses minimal cut sets instead of direct pivotality:
+
+```{r}
+t0 <- 1
+sapply(1:5, function(j) vesely_fussell_importance(sys, j, t0))
+```
+
+Component j's Vesely-Fussell importance at time t is the conditional
+probability that some minimal cut set containing j is fully failed,
+given that the system has failed by t. It tends to be larger than
+criticality importance for components that appear in small cuts.
+
+## Comparison
+
+```{r}
+# Build a comparison table at p = 0.9 and t s.t. S(t) = 0.9 for all components.
+# For iid Exp(1), S(t) = 0.9 -> t = -log(0.9)
+t_star <- -log(0.9)
+
+tab <- data.frame(
+  j = 1:5,
+  structural = sapply(1:5, function(j) structural_importance(sys, j)),
+  birnbaum = sapply(1:5, function(j) birnbaum_importance(sys, j, 0.9)),
+  criticality = sapply(1:5, function(j) criticality_importance(sys, j, t_star)),
+  vesely_fussell = sapply(1:5, function(j) vesely_fussell_importance(sys, j, t_star))
+)
+tab
+```
+
+For the bridge at iid p = 0.9 (equivalent to t = t_star), all four
+measures agree on the ordering (components 1, 2, 4, 5 identical;
+component 3 different). Under heterogeneous reliabilities the measures
+can rank components differently.
+
+## Closed-form checks
+
+Some importance values have simple closed forms worth remembering:
+
+```{r}
+# Series: Birnbaum importance of j equals product of the OTHER p's.
+series3 <- series_dist(replicate(3, exponential(1), simplify = FALSE))
+p_vec <- c(0.9, 0.8, 0.7)
+birnbaum_importance(series3, j = 1, p = p_vec)
+prod(p_vec[-1])
+```
+
+```{r}
+# Parallel: Birnbaum importance of j equals product of the OTHER (1 - p_i).
+parallel3 <- parallel_dist(replicate(3, exponential(1), simplify = FALSE))
+birnbaum_importance(parallel3, j = 1, p = p_vec)
+prod(1 - p_vec[-1])
+```
+
+```{r}
+# Series: Vesely-Fussell equals F_j / F_sys at time t, since each
+# component forms its own min cut.
+t0 <- 1
+F_j_1 <- 1 - exp(-t0)
+F_sys <- 1 - exp(-3 * t0)   # Exp(sum(rates) = 3)
+vesely_fussell_importance(series3, j = 1, t = t0)
+F_j_1 / F_sys
+```
+
+## When to use which
+
+- **Structural**: system design, component selection, topology
+  comparison. Independent of component reliability values; useful
+  before you know the components.
+- **Birnbaum**: design-point sensitivity. You pick a design point `p`
+  and ask which component contributes most to dR/dp.
+- **Criticality**: failure-attribution analysis. After the system has
+  failed by time t, which component is "to blame" most often?
+- **Vesely-Fussell**: same time-dependent question as criticality but
+  through cut-set lens. Useful when you think about failure in terms of
+  minimal failure combinations.
+
+All four are computed from the same primitives (`phi`, `min_cuts`, the
+component survivals and failures) and the differences are in which
+event you condition on and which counting you do.

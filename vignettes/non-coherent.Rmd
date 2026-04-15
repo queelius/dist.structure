@@ -1,0 +1,161 @@
+---
+title: "Non-coherent systems: cold standby"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Non-coherent systems: cold standby}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+```{r setup}
+library(dist.structure)
+library(algebraic.dist)
+```
+
+## Why "non-coherent"
+
+The structure-function framework assumes a monotone binary function
+`phi: {0, 1}^m -> {0, 1}` that maps per-component states to a system
+state. This captures a huge class of reliability topologies but not
+everything practitioners build. Cold standby is a canonical example.
+
+A **cold standby** system has m components but only one is active at a
+time. When the active component fails, a dormant spare instantaneously
+takes over. System lifetime is the sum of component lifetimes, not an
+order statistic.
+
+The topology is temporal succession, not a structure function on
+states. So cold standby:
+
+- is a valid distribution object (you can sample, compute survival, ask
+  for mean),
+- is NOT a `dist_structure`: it has no `phi`, no `min_paths`, no
+  signature, no Birnbaum importance.
+
+dist.structure provides `cold_standby_dist` for this case, with its
+own class chain that deliberately does not inherit `dist_structure`.
+
+## Constructing a cold standby
+
+```{r}
+sys <- cold_standby_dist(list(
+  exponential(1),
+  exponential(2),
+  exponential(0.5)
+))
+class(sys)
+dist.structure::is_dist_structure(sys)   # FALSE -- not a coherent system
+```
+
+## Mean and sampling: exact
+
+`mean` is exact when every component has an exact mean method: it sums
+the component means.
+
+```{r}
+mean(sys)                              # 1/1 + 1/2 + 1/0.5 = 3.5
+```
+
+The sampler is also exact: independent samples from each component,
+summed.
+
+```{r}
+set.seed(1)
+x <- algebraic.dist::sampler(sys)(10000)
+mean(x)                                # empirical ~ 3.5
+```
+
+## Survival and CDF: Monte Carlo with caching
+
+For general components, the density of a sum-of-independent-RVs has no
+closed form (it's a convolution). dist.structure computes `surv` and
+`cdf` via Monte Carlo sampling. The closure caches the samples on the
+first call, so repeated evaluations at different `t` values are
+deterministic given the same `mc`:
+
+```{r}
+set.seed(42)
+S <- algebraic.dist::surv(sys)
+S(c(1, 2, 3, 5), mc = 10000)          # survival at multiple t values
+```
+
+A different `mc` triggers a fresh draw:
+
+```{r}
+S(2, mc = 10000)                       # uses the same cache
+S(2, mc = 20000)                       # new cache with 20000 samples
+```
+
+Because the cache lives inside the closure, using the same `S` closure
+keeps results consistent. `cdf` has its own closure and its own
+cache: `cdf(sys)(t) + surv(sys)(t)` computed independently is not
+exactly 1. If you need that identity, use one `surv` closure and
+compute the CDF from it:
+
+```{r}
+S <- algebraic.dist::surv(sys)
+F_t <- function(t) 1 - S(t)
+F_t(2) + S(2)                          # exactly 1
+```
+
+For reproducibility across separate closure constructions, seed before
+each one:
+
+```{r}
+set.seed(1); S1 <- algebraic.dist::surv(sys); s1 <- S1(2)
+set.seed(1); S2 <- algebraic.dist::surv(sys); s2 <- S2(2)
+all.equal(s1, s2)
+```
+
+## Specialized closed-form case: iid exponentials
+
+A cold standby of m iid `Exp(rate)` components has system lifetime
+`Gamma(shape = m, rate = rate)`:
+
+```{r}
+m <- 4; rate <- 2
+sys <- cold_standby_dist(replicate(m, exponential(rate), simplify = FALSE))
+# Monte Carlo survival at t = 3
+set.seed(1)
+mc_est <- algebraic.dist::surv(sys)(3, mc = 50000)
+# Exact via Gamma
+exact <- pgamma(3, shape = m, rate = rate, lower.tail = FALSE)
+cat(sprintf("MC: %.4f, Exact: %.4f\n", mc_est, exact))
+```
+
+If you hit this case often, you can avoid the Monte Carlo by
+constructing an `algebraic.dist::gamma_dist` directly.
+
+## What cold standby does NOT support
+
+Generics requiring topology or component-level `density`/`sup` fail
+cleanly:
+
+```{r, error = TRUE}
+dist.structure::phi(sys, c(1, 1, 1, 1))
+```
+
+```{r, error = TRUE}
+dist.structure::min_paths(sys)
+```
+
+Methods inherited from `algebraic.dist::univariate_dist` that require
+`density` or `sup` (notably `vcov`, `expectation`) are also not
+supported by default. A specialized subclass with a closed-form
+aggregate (e.g., iid exponential -> Gamma) can provide them by
+overriding.
+
+## When to reach for cold standby
+
+- Sequential redundancy with dormant spares (perfect switching, zero
+  standby hazard).
+- Modelling sum-of-lifetimes directly as a distribution.
+- Monte Carlo as a first-pass answer when no closed form is available.
+
+When you need the full dist.structure protocol (topology, importance,
+composition), cold standby is the wrong tool; use a coherent system
+instead.

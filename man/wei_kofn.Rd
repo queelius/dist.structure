@@ -5,6 +5,7 @@
 \alias{surv.wei_kofn}
 \alias{cdf.wei_kofn}
 \alias{sampler.wei_kofn}
+\alias{density.wei_kofn}
 \title{k-out-of-n system of independent Weibull components (closed form)}
 \usage{
 wei_kofn(k, shapes, scales)
@@ -14,6 +15,8 @@ wei_kofn(k, shapes, scales)
 \method{cdf}{wei_kofn}(x, ...)
 
 \method{sampler}{wei_kofn}(x, ...)
+
+\method{density}{wei_kofn}(x, ...)
 }
 \arguments{
 \item{k}{Minimum functioning components for system operation.}

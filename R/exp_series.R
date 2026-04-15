@@ -77,6 +77,8 @@ density.exp_series <- function(x, ...) {
 
 
 #' @rdname exp_series
+#' @method hazard exp_series
+#' @importFrom algebraic.dist hazard
 #' @export
 hazard.exp_series <- function(x, ...) {
   lam <- x$total_rate

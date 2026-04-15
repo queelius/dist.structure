@@ -2,7 +2,7 @@
 % Please edit documentation in R/coherent_dist.R
 \name{consecutive_k_dist}
 \alias{consecutive_k_dist}
-\title{Consecutive-k-out-of-n system distribution}
+\title{Consecutive-k-out-of-n system distribution (type G)}
 \usage{
 consecutive_k_dist(k, components)
 }
@@ -15,8 +15,9 @@ consecutive_k_dist(k, components)
 A \code{consecutive_k_dist} inheriting from \code{coherent_dist}.
 }
 \description{
-The system fails if any \code{k} consecutive components fail. The structure
-functions when at least one block of \code{k} consecutive components all
-function; minimal path sets are the \code{n - k + 1} consecutive blocks of
-size \code{k}.
+The consecutive-k-out-of-n:G system functions when at least one block
+of \code{k} consecutive components all function. Minimal path sets are the
+\code{n - k + 1} consecutive blocks of size \code{k}. (Note: this is the :G
+variant; the :F variant, "fails when any \code{k} consecutive fail", has
+different minimal paths.)
 }

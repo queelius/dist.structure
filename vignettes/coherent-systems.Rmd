@@ -1,0 +1,203 @@
+---
+title: "Coherent systems"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Coherent systems}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+```{r setup}
+library(dist.structure)
+library(algebraic.dist)
+```
+
+## What is a coherent system
+
+A **coherent system** is a reliability structure defined by a monotone
+binary-valued structure function `phi: {0, 1}^m -> {0, 1}` where every
+component is relevant. Coherent systems capture the vast majority of
+practical reliability topologies: series (all components required),
+parallel (any one suffices), k-out-of-n, bridge networks, consecutive-k
+systems, and arbitrary coherent structures specified by minimal path
+sets.
+
+This vignette works through the core structural concepts and the
+dist.structure constructors that realize them.
+
+## The structure function `phi`
+
+`phi(x)` returns 1 when the component state vector `x` makes the
+system function:
+
+```{r}
+sys <- series_dist(list(exponential(1), exponential(1), exponential(1)))
+phi(sys, c(1, 1, 1))                   # all up: series functions
+phi(sys, c(1, 0, 1))                   # one down: series fails
+```
+
+```{r}
+par_sys <- parallel_dist(list(exponential(1), exponential(1)))
+phi(par_sys, c(0, 1))                  # one up: parallel functions
+phi(par_sys, c(0, 0))                  # all down: parallel fails
+```
+
+## Minimal path and cut sets
+
+A **minimal path set** is a minimal collection of components whose
+simultaneous functioning guarantees the system functions. A **minimal
+cut set** is a minimal collection whose simultaneous failure causes
+system failure. Paths and cuts are dual specifications of phi.
+
+```{r}
+min_paths(sys)                         # series: one path, all components
+min_cuts(sys)                          # series: m singleton cuts
+```
+
+```{r}
+min_paths(par_sys)                     # parallel: m singleton paths
+min_cuts(par_sys)                      # parallel: one cut, all components
+```
+
+The duality extends to k-of-n:
+
+```{r}
+sys_kofn <- kofn_dist(k = 2,
+  components = list(exponential(1), exponential(1), exponential(1)))
+length(min_paths(sys_kofn))            # choose(3, 2) = 3 paths
+length(min_cuts(sys_kofn))             # choose(3, 2) = 3 cuts (pairs)
+```
+
+dist.structure derives `min_cuts` from `min_paths` via the Berge
+transversal algorithm, so you only need to provide one or the other
+when building a custom topology.
+
+## The bridge network
+
+The classic bridge network is the smallest system that is neither
+series nor parallel nor k-of-n. dist.structure provides a constructor:
+
+```{r}
+bridge <- bridge_dist(replicate(5, exponential(1), simplify = FALSE))
+length(min_paths(bridge))              # 4 minimal paths
+length(min_cuts(bridge))               # 4 minimal cuts
+system_signature(bridge)               # (0, 1/5, 3/5, 1/5, 0)
+```
+
+The Samaniego signature `(0, 1/5, 3/5, 1/5, 0)` encodes the probability
+the system fails at the k-th component failure under iid component
+lifetimes. For the bridge, 3/5 of the time the system fails at the 3rd
+component failure.
+
+## Arbitrary coherent systems
+
+Supply minimal paths directly via `coherent_dist`:
+
+```{r}
+# Two parallel sub-systems combined in series:
+# Paths: any path picks one component from each block.
+custom <- coherent_dist(
+  min_paths = list(c(1, 3), c(1, 4), c(2, 3), c(2, 4)),
+  components = replicate(4, exponential(1), simplify = FALSE)
+)
+ncomponents(custom)
+length(min_paths(custom))
+length(min_cuts(custom))
+```
+
+## Structural importance
+
+The Birnbaum structural importance of component j is the fraction of
+states of the other m-1 components in which j is pivotal:
+
+```{r}
+structural_importance(sys_kofn, j = 1)     # symmetric: same for all j
+```
+
+For a k-of-m system at iid p, structural importance equals
+`choose(m - 1, k - 1) / 2^(m - 1)`.
+
+## Reliability polynomial
+
+`reliability(system, p)` is the multilinear extension of phi to the
+unit cube: given component reliabilities `p`, it returns the system
+reliability. For series systems at iid p this is `p^m`:
+
+```{r}
+for (p in c(0.1, 0.5, 0.9)) {
+  cat(sprintf("p = %.1f: reliability = %.4f\n",
+              p, reliability(sys, p)))
+}
+```
+
+For k-of-m at iid p it matches the binomial tail probability:
+
+```{r}
+# 2-of-3 at p = 0.8: P(Binom(3, 0.8) >= 2)
+reliability(sys_kofn, 0.8)
+sum(dbinom(2:3, size = 3, prob = 0.8))
+```
+
+## Critical states
+
+For each component j, `critical_states(system, j)` enumerates states
+of the other m-1 components in which j is pivotal:
+
+```{r}
+crit <- critical_states(sys_kofn, j = 1)
+nrow(crit)                             # 2 (= choose(2, 1) for 2-of-3)
+crit                                   # each row: a state of components 2, 3
+```
+
+Component 1 is critical iff exactly one of components 2 and 3 is
+functioning.
+
+## Dual systems
+
+The dual of a coherent system swaps paths and cuts: `phi_dual(x) = 1 -
+phi(1 - x)`. The dual of a series is parallel; the dual of a k-of-m is
+(m - k + 1)-of-m.
+
+```{r}
+dsys <- dual(sys)
+phi(dsys, c(0, 0, 0))                  # like parallel: fails only if all down
+phi(dsys, c(1, 0, 0))                  # functions if any up
+```
+
+For `coherent_dist` objects, `dual` returns a new coherent_dist whose
+min_paths are the original's min_cuts. This is a proper involution:
+`dual(dual(sys))` has the same phi as `sys`.
+
+## Validating a custom topology
+
+`is_coherent` checks the axioms: monotonicity and component relevance.
+
+```{r}
+is_coherent(sys)                       # TRUE
+is_coherent(bridge)                    # TRUE
+```
+
+A hypothetical system where phi ignores some component (violating
+relevance) would fail this check.
+
+## Summary
+
+| Concept | Generic | What it returns |
+|---|---|---|
+| Structure function | `phi(sys, state)` | 0 or 1 |
+| Minimal paths | `min_paths(sys)` | list of integer vectors |
+| Minimal cuts | `min_cuts(sys)` | list of integer vectors |
+| Signature | `system_signature(sys)` | numeric m-vector summing to 1 |
+| Critical states | `critical_states(sys, j)` | integer matrix of m-1 cols |
+| Structural importance | `structural_importance(sys, j)` | scalar in [0, 1] |
+| Reliability polynomial | `reliability(sys, p)` | scalar in [0, 1] |
+| Dual | `dual(sys)` | a dist_structure |
+| Coherence check | `is_coherent(sys)` | TRUE / FALSE |
+
+Every constructor (`series_dist`, `parallel_dist`, `kofn_dist`,
+`bridge_dist`, `consecutive_k_dist`, `coherent_dist`, and the iid
+shortcuts) produces an object on which all of these work.

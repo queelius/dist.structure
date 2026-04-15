@@ -5,6 +5,7 @@
 \alias{surv.exp_kofn}
 \alias{cdf.exp_kofn}
 \alias{sampler.exp_kofn}
+\alias{density.exp_kofn}
 \title{k-out-of-n system of independent exponential components (closed form)}
 \usage{
 exp_kofn(k, rates)
@@ -14,6 +15,8 @@ exp_kofn(k, rates)
 \method{cdf}{exp_kofn}(x, ...)
 
 \method{sampler}{exp_kofn}(x, ...)
+
+\method{density}{exp_kofn}(x, ...)
 }
 \arguments{
 \item{k}{Minimum number of functioning components for system operation.}

@@ -1,0 +1,183 @@
+---
+title: "Getting started with dist.structure"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with dist.structure}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(dist.structure)
+library(algebraic.dist)
+```
+
+## What `dist.structure` is
+
+`dist.structure` is a small, principled extension of `algebraic.dist`.
+It lets you build and query **random variables with internal
+structure**: coherent reliability systems decomposed into components
+via a structure function.
+
+Every object produced by `dist.structure` is also a `dist` (from
+`algebraic.dist`), so the full distribution algebra (`mean`, `vcov`,
+`sampler`, `surv`, `cdf`, `density`) works on it. On top of that,
+`dist.structure` exposes structural queries you cannot ask of a plain
+distribution: minimal path sets, system signature, Birnbaum
+importance, duality, and more.
+
+This vignette is a five-minute tour. Other vignettes go deeper into
+specific topics.
+
+## Your first structured distribution
+
+Start with a series system of three independent exponentials:
+
+```{r}
+sys <- series_dist(list(
+  exponential(0.5),
+  exponential(0.3),
+  exponential(0.2)
+))
+sys
+```
+
+The object is a dist. Query it like any distribution:
+
+```{r}
+algebraic.dist::surv(sys)(1)           # P(system survives past t = 1)
+algebraic.dist::cdf(sys)(1)            # P(system fails by t = 1)
+set.seed(1)
+algebraic.dist::sampler(sys)(5)        # five system-lifetime samples
+```
+
+The series-of-exponentials identity `sum(rates) = total rate` holds:
+the system is `Exp(sum(rates))`. Confirm:
+
+```{r}
+algebraic.dist::surv(sys)(1)
+exp(-(0.5 + 0.3 + 0.2) * 1)
+```
+
+## Structural queries
+
+Now ask topology questions the base distribution algebra cannot
+answer:
+
+```{r}
+ncomponents(sys)                       # 3 components
+phi(sys, c(1, 1, 0))                   # system functions? No (series needs all)
+phi(sys, c(1, 1, 1))                   # Yes
+min_paths(sys)                         # the single path: all components
+min_cuts(sys)                          # three singleton cuts
+system_signature(sys)                  # (1, 0, 0): fails at first failure
+```
+
+The structure function `phi` takes a component state vector (0 =
+failed, 1 = functioning) and returns 1 if the system is functioning.
+For a series system, `phi = AND`: all components must function.
+
+## A richer topology: k-out-of-n
+
+Series and parallel are special cases of k-out-of-n (functions if at
+least k of m components function). dist.structure has a shortcut:
+
+```{r}
+# 2-out-of-3 of heterogeneous exponentials; closed-form specialization
+kofn <- exp_kofn(k = 2, rates = c(1, 2, 3))
+ncomponents(kofn)
+algebraic.dist::surv(kofn)(1)
+system_signature(kofn)                 # (0, 1, 0) for 2-of-3
+```
+
+The k-of-n system in dist.structure uses the :G convention: `k`
+functioning components are required for the system to function.
+Consequently `kofn_dist(k = 1, ...)` is parallel and `kofn_dist(k = m,
+...)` is series.
+
+## Sampling, means, and composition
+
+Every distribution generic composes naturally:
+
+```{r}
+set.seed(42)
+samples <- algebraic.dist::sampler(kofn)(10000)
+mean(samples)
+```
+
+You can also substitute or compose components:
+
+```{r}
+# Swap component 2 with a Weibull.
+kofn2 <- substitute_component(kofn, j = 2,
+  new_component = weibull_dist(shape = 2, scale = 1))
+algebraic.dist::surv(kofn2)(1)
+```
+
+## Importance measures
+
+How much does each component matter? dist.structure provides four
+complementary importance measures:
+
+```{r}
+# Structural importance: fraction of pivotal states for component 1.
+structural_importance(kofn, j = 1)
+
+# Birnbaum (reliability) importance: dR/dp_j at given component
+# reliabilities.
+birnbaum_importance(kofn, j = 1, p = 0.9)
+
+# Criticality importance at time t = 0.5.
+criticality_importance(kofn, j = 1, t = 0.5)
+
+# Vesely-Fussell importance at time t = 0.5 (via minimal cut sets).
+vesely_fussell_importance(kofn, j = 1, t = 0.5)
+```
+
+All four are different answers to "how important is component j?" and
+they agree for simple systems but diverge for complex ones. The
+[importance measures vignette](importance-measures.html) works through
+the distinctions.
+
+## What to read next
+
+- **[Coherent systems](coherent-systems.html)**: the structural
+  concepts (phi, min_paths, min_cuts, signature, reliability
+  polynomial) in depth, with series, parallel, k-of-n, bridge, and
+  consecutive-k examples.
+- **[Distribution interface](distribution-interface.html)**: how
+  dist_structure inherits from dist, which generics default via
+  composition, and when to reach for a specialization (`exp_series`,
+  `wei_kofn`) vs the general `coherent_dist`.
+- **[Importance measures](importance-measures.html)**: the four
+  importance measures applied to a bridge network, including
+  time-dependent versions.
+- **[Composition](composition.html)**: hierarchical construction via
+  `substitute_component` and `compose_systems`.
+- **[Non-coherent systems](non-coherent.html)**: cold standby, where
+  system lifetime is a sum (not an order statistic), and why this is
+  explicitly NOT a dist_structure.
+
+## Ecosystem
+
+`dist.structure` is the shared topology and DGP layer for the
+reliability packages in the queelius ecosystem:
+
+- `serieshaz` implements the protocol on `dfr_dist_series` (arbitrary
+  dynamic failure rate components).
+- `kofn` provides MLE for k-out-of-n systems, delegating its DGP to
+  dist.structure.
+- `maskedcauses` wraps its exponential-series legacy API over
+  `dist.structure::exp_series`.
+
+Any object from these packages that declares `dist_structure` in its
+class vector inherits the full protocol automatically: topology
+queries, importance measures, composition operators, and the full
+`dist` interface.

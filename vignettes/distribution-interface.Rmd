@@ -1,0 +1,177 @@
+---
+title: "Distribution interface"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Distribution interface}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+```{r setup}
+library(dist.structure)
+library(algebraic.dist)
+```
+
+## dist_structure IS-A dist
+
+`dist_structure` is a virtual S3 class that inherits from
+`univariate_dist` and `dist`. Every concrete constructor returns an
+object that participates in the full `algebraic.dist` distribution
+algebra via inheritance:
+
+```{r}
+sys <- series_dist(list(
+  exponential(0.5),
+  exponential(0.3),
+  exponential(0.2)
+))
+class(sys)
+algebraic.dist::is_dist(sys)
+```
+
+## Default dist methods
+
+When you call `surv`, `cdf`, `sampler` on a `dist_structure` object,
+dispatch goes through three paths in order of specificity:
+
+1. **Specialized closed-form methods** (e.g., `surv.exp_series`,
+   `surv.wei_homogeneous_series`). Fastest; used when available.
+2. **Topology shortcut methods** (e.g., `surv.series_dist`). Rare; most
+   specializations land on the specific parametric class.
+3. **The dist_structure default**, which composes component
+   distributions through the structure function via the reliability
+   polynomial identity:
+
+   ```
+   S_sys(t) = R(S_1(t), S_2(t), ..., S_m(t))
+   ```
+
+   where `R` is the multilinear extension of `phi`. This is how
+   `coherent_dist(min_paths = ...)` gets a surv function for any
+   topology, even one you specify by hand.
+
+Samplers follow the analogous composition: sample each component
+independently, then apply `system_lifetime` to reduce to a scalar.
+
+## Choosing specializations vs general constructors
+
+dist.structure provides both general and specialized constructors for
+common cases. You should prefer the specialization when available:
+
+```{r}
+# General: any components, arbitrary topology
+sys_general <- series_dist(replicate(3, exponential(1), simplify = FALSE))
+
+# Specialization: exploits Exp(sum(rates)) closed form
+sys_special <- exp_series(c(1, 1, 1))
+```
+
+Both return identical distributions, but the specialization's `surv`
+is a one-liner (`exp(-total_rate * t)`) while the general version
+computes `prod(exp(-rate_j * t))` per component per t. Same math,
+different cost.
+
+Verify:
+
+```{r}
+for (ti in c(0.5, 1, 2)) {
+  stopifnot(isTRUE(all.equal(
+    algebraic.dist::surv(sys_general)(ti),
+    algebraic.dist::surv(sys_special)(ti),
+    tolerance = 1e-10
+  )))
+}
+```
+
+## Closed-form specializations in dist.structure
+
+| Constructor | Closed form |
+|---|---|
+| `exp_series(rates)` | `Exp(sum(rates))` exactly |
+| `wei_series(shapes, scales)` | `exp(-sum((t/scale)^shape))` for survival |
+| `wei_homogeneous_series(shape, scales)` | single Weibull with aggregate scale |
+| `gamma_series(shapes, rates)` | product of Gamma upper tails |
+| `lognormal_series(meanlogs, sdlogs)` | product of Lognormal upper tails |
+| `exp_parallel(rates)` | `1 - prod(1 - exp(-rate*t))` |
+| `exp_kofn(k, rates)` | subset enumeration (`O(2^m)`) |
+| `wei_kofn(k, shapes, scales)` | same for Weibull components |
+
+Each has closed-form `surv`, `cdf`, `sampler`, and (where feasible)
+`density`. The `surv` / `cdf` / `density` methods registered on these
+subclasses dispatch before the `dist_structure` default.
+
+## min, max, and order statistics as dist_structure
+
+The base `algebraic.dist` has `min` and `max` operators on dists that
+return plain dist objects. `dist.structure` provides structure-aware
+counterparts:
+
+```{r}
+d <- exponential(1)
+
+# Plain min: just a dist, no topology
+d_min <- min(d, d, d)
+class(d_min)
+```
+
+```{r}
+# Structure-aware: a series_dist, topology preserved
+sys_min <- min_iid(d, m = 3)
+class(sys_min)
+dist.structure::min_paths(sys_min)
+```
+
+Same survival function, but the structured version lets you ask `phi`,
+`min_paths`, `structural_importance`, and so on.
+
+Similarly:
+
+```{r}
+# Parallel: max of iid
+sys_max <- max_iid(d, m = 3)
+class(sys_max)
+
+# k-th order statistic
+sys_k <- order_statistic(d, k = 2, m = 5)
+class(sys_k)
+```
+
+## Density and hazard
+
+`density` and `hazard` have specialized implementations only where
+efficient formulas exist:
+
+```{r}
+# Density of exp_series: dexp at the aggregate rate.
+f <- density(exp_series(c(0.5, 0.3, 0.2)))
+f(1)
+dexp(1, rate = 1.0)
+```
+
+For general `coherent_dist` objects, `density` is typically computed
+via `-d/dt surv(t)` numerically. If you need `density` on a system
+where it matters for performance, register a specialized method or use
+a specialization that ships one.
+
+## The `dist.structure` + `algebraic.dist` stack
+
+```
+algebraic.dist                    dist, generics, arithmetic on RVs
+    |
+dist.structure                    dist with internal component structure
+    |
+specialized + general impls       exp_series, kofn_dist, coherent_dist, ...
+    |
+downstream packages               serieshaz, kofn, maskedcauses
+```
+
+Downstream packages (e.g., `serieshaz`'s `dfr_dist_series`) inherit
+from `dist_structure` and get topology + importance + composition for
+free. Users never need to know whether a given generic is provided by
+the specialized class, the dist_structure default, or the
+algebraic.dist base; S3 dispatch finds the most specific method and
+that's the one that runs.

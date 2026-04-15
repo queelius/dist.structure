@@ -6,6 +6,8 @@
 \alias{cdf.exp_series}
 \alias{sampler.exp_series}
 \alias{mean.exp_series}
+\alias{density.exp_series}
+\alias{hazard.exp_series}
 \title{Series of exponential components (closed form)}
 \usage{
 exp_series(rates)
@@ -17,6 +19,10 @@ exp_series(rates)
 \method{sampler}{exp_series}(x, ...)
 
 \method{mean}{exp_series}(x, ...)
+
+\method{density}{exp_series}(x, ...)
+
+\method{hazard}{exp_series}(x, ...)
 }
 \arguments{
 \item{rates}{Positive numeric vector of length \code{m}: per-component

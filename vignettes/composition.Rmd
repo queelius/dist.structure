@@ -1,0 +1,161 @@
+---
+title: "Composition and substitution"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Composition and substitution}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+```{r setup}
+library(dist.structure)
+library(algebraic.dist)
+```
+
+## Building new systems from old
+
+dist.structure provides two compositional operations:
+
+- `substitute_component(sys, j, new_component)` swaps one component's
+  distribution while preserving the topology.
+- `compose_systems(outer, inner_list)` replaces each component of the
+  outer system with an inner sub-system, flattening the components and
+  enumerating the composed minimal paths.
+
+These let you build hierarchical reliability networks without writing
+min_paths by hand.
+
+## Substituting a component
+
+Start with a 3-component parallel system, then upgrade one component
+to a longer-lived Weibull:
+
+```{r}
+sys <- parallel_dist(list(
+  exponential(1),
+  exponential(1),
+  exponential(1)
+))
+
+# Survival at t = 1 for the all-exponential parallel:
+algebraic.dist::surv(sys)(1)
+
+sys2 <- substitute_component(sys, j = 1,
+  new_component = weibull_dist(shape = 2, scale = 2))
+
+# Survival improves because component 1 is now longer-lived:
+algebraic.dist::surv(sys2)(1)
+```
+
+`substitute_component` returns a `coherent_dist` with the same
+min_paths and the modified component list. Topology queries work
+identically:
+
+```{r}
+length(min_paths(sys2))                # still 3 (parallel)
+ncomponents(sys2)                      # still 3
+```
+
+## Hierarchical composition
+
+`compose_systems` nests: give an outer topology and a list of inner
+systems (one per outer component), and get back a flattened system
+whose min_paths combine both levels of topology.
+
+### Series of parallels
+
+A common redundant design: two parallel blocks in series.
+
+```{r}
+inner_a <- parallel_dist(list(exponential(1), exponential(1)))
+inner_b <- parallel_dist(list(exponential(1), exponential(1)))
+
+# Outer: series of 2 "slots" (the components are placeholder; they get
+# replaced by the inners during compose_systems).
+outer <- series_dist(list(exponential(1), exponential(1)))
+
+sys <- compose_systems(outer, list(inner_a, inner_b))
+ncomponents(sys)                       # 4 total leaf components
+length(min_paths(sys))                 # 4 composed paths
+```
+
+The composed paths are the Cartesian product of inner paths within
+each outer path. Outer path is `{1, 2}`; inner_a min_paths = `{1},
+{2}`; inner_b shifted min_paths = `{3}, {4}`. Four combinations:
+`{1, 3}, {1, 4}, {2, 3}, {2, 4}`.
+
+```{r}
+min_paths(sys)
+```
+
+### Parallel of series
+
+The dual: two series blocks in parallel.
+
+```{r}
+inner_a <- series_dist(list(exponential(1), exponential(1)))
+inner_b <- series_dist(list(exponential(1), exponential(1)))
+
+outer <- parallel_dist(list(exponential(1), exponential(1)))
+
+sys <- compose_systems(outer, list(inner_a, inner_b))
+ncomponents(sys)                       # 4 total
+length(min_paths(sys))                 # 2 composed paths
+min_paths(sys)                         # {1, 2} and {3, 4}
+```
+
+## Mixing a sub-system with a plain dist
+
+`compose_systems` handles a mix of `dist_structure` inner systems and
+plain `dist` inner components. A plain `dist` is treated as a single-
+component atomic sub-system:
+
+```{r}
+# Series of: (a 2-parallel block) + (a single exponential)
+inner_par <- parallel_dist(list(exponential(1), exponential(1)))
+outer <- series_dist(list(exponential(1), exponential(1)))
+
+sys <- compose_systems(outer, list(inner_par, exponential(1)))
+ncomponents(sys)                       # 3: two from parallel + one single
+min_paths(sys)                         # {1, 3} and {2, 3}
+```
+
+Component 3 is the atomic component from the second outer slot; it
+must function jointly with either component 1 or component 2 for the
+system to function.
+
+## Arbitrary depth
+
+Composition is arbitrarily nestable:
+
+```{r}
+# A parallel of two different sub-systems:
+sub_a <- series_dist(list(exponential(1), exponential(1)))     # simple series
+sub_b <- bridge_dist(replicate(5, exponential(1), simplify = FALSE))  # bridge
+
+outer <- parallel_dist(list(exponential(1), exponential(1)))
+combined <- compose_systems(outer, list(sub_a, sub_b))
+
+ncomponents(combined)                  # 2 + 5 = 7 total
+length(min_paths(combined))            # = 1 + 4 (series has 1 path, bridge has 4)
+```
+
+The structural richness compounds: you can analyze the whole system
+via the full dist.structure protocol (sampler, surv, system_signature,
+importance measures, dual, etc.).
+
+## Substitution vs composition
+
+- **`substitute_component`**: same topology, different component
+  distribution. Use when exploring sensitivity to a single component's
+  parameters or swapping one family for another.
+- **`compose_systems`**: richer topology by nesting. Use when the
+  system has hierarchical structure (redundant subsystems, modular
+  designs, networks of networks).
+
+Both produce objects that participate in the full dist.structure
+protocol, so further substitutions and compositions compose cleanly.

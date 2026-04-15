@@ -1,0 +1,115 @@
+url: https://queelius.github.io/dist.structure
+
+template:
+  bootstrap: 5
+  bootswatch: cosmo
+
+home:
+  title: Structured Random Variables for Reliability Systems
+
+navbar:
+  structure:
+    left:  [intro, reference, articles, news]
+    right: [search, github]
+  components:
+    intro:
+      text: Get started
+      href: articles/getting-started.html
+    articles:
+      text: Articles
+      menu:
+      - text: Coherent systems
+        href: articles/coherent-systems.html
+      - text: Distribution interface
+        href: articles/distribution-interface.html
+      - text: Importance measures
+        href: articles/importance-measures.html
+      - text: Composition and substitution
+        href: articles/composition.html
+      - text: Non-coherent systems (cold standby)
+        href: articles/non-coherent.html
+
+reference:
+- title: Protocol
+  desc: Generics and the virtual base class every implementation participates in.
+  contents:
+  - dist_structure
+  - is_dist_structure
+  - ncomponents
+  - component
+  - phi
+  - min_paths
+  - min_cuts
+  - system_signature
+  - critical_states
+  - system_lifetime
+  - system_censoring
+  - dual
+  - is_coherent
+  - structural_importance
+  - reliability
+  - format.dist_structure
+  - print.dist_structure
+  - mean.cold_standby_dist
+
+- title: Topology constructors
+  desc: General and shortcut constructors for coherent system distributions.
+  contents:
+  - coherent_dist
+  - series_dist
+  - parallel_dist
+  - kofn_dist
+  - bridge_dist
+  - consecutive_k_dist
+
+- title: IID convenience constructors
+  desc: Shortcuts for systems of iid components.
+  contents:
+  - min_iid
+  - max_iid
+  - order_statistic
+
+- title: Closed-form series specializations
+  desc: Fast paths for common parametric series systems.
+  contents:
+  - exp_series
+  - wei_series
+  - wei_homogeneous_series
+  - gamma_series
+  - lognormal_series
+
+- title: Closed-form parallel and k-of-n specializations
+  contents:
+  - exp_parallel
+  - exp_kofn
+  - wei_kofn
+
+- title: Importance measures
+  desc: Structural and reliability importance for diagnostics and sensitivity.
+  contents:
+  - birnbaum_importance
+  - criticality_importance
+  - vesely_fussell_importance
+
+- title: Compositional operations
+  desc: Build new systems from old.
+  contents:
+  - substitute_component
+  - compose_systems
+  - as_dist_structure
+
+- title: Non-coherent systems
+  contents:
+  - cold_standby_dist
+
+articles:
+- title: Core workflows
+  contents:
+  - getting-started
+  - coherent-systems
+  - distribution-interface
+- title: Advanced
+  contents:
+  - importance-measures
+  - composition
+  - non-coherent
