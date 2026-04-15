@@ -145,3 +145,86 @@ structural_importance <- function(x, j) UseMethod("structural_importance")
 #' @return Numeric scalar in `[0, 1]`.
 #' @export
 reliability <- function(x, p) UseMethod("reliability")
+
+
+#' Birnbaum reliability importance
+#'
+#' The Birnbaum importance of component `j` at component reliabilities
+#' `p` is `dR/dp_j = R(p with p_j = 1) - R(p with p_j = 0)`. Measures
+#' how much the system reliability changes if `j` moves between certain
+#' failure and certain success (and, by monotonicity, the rate of
+#' change at any intermediate `p_j`).
+#'
+#' @param x A [dist_structure] object.
+#' @param j Component index.
+#' @param p Numeric vector of length `ncomponents(x)` or a scalar in
+#'   `[0, 1]`.
+#' @return Numeric scalar in `[0, 1]`.
+#' @export
+birnbaum_importance <- function(x, j, p) UseMethod("birnbaum_importance")
+
+
+#' Criticality (Fussell) importance at time t
+#'
+#' Probability that component `j` has failed AND is critical given
+#' that the system has failed by time `t`. Equals
+#' `I_B(j; S(t)) * F_j(t) / F_sys(t)`.
+#'
+#' @param x A [dist_structure] object.
+#' @param j Component index.
+#' @param t Scalar time.
+#' @return Numeric scalar in `[0, 1]`.
+#' @export
+criticality_importance <- function(x, j, t) UseMethod("criticality_importance")
+
+
+#' Vesely-Fussell importance at time t
+#'
+#' Probability that at least one minimal cut set containing `j` has all
+#' its components failed, given the system has failed by time `t`.
+#' Computed exactly via inclusion-exclusion over subsets of cuts that
+#' contain `j`.
+#'
+#' @param x A [dist_structure] object.
+#' @param j Component index.
+#' @param t Scalar time.
+#' @return Numeric scalar in `[0, 1]`.
+#' @export
+vesely_fussell_importance <- function(x, j, t) {
+  UseMethod("vesely_fussell_importance")
+}
+
+
+#' Substitute a component
+#'
+#' Return a new [dist_structure] with the j-th component replaced by
+#' `new_component`. Topology is preserved; the returned object is a
+#' `coherent_dist` with the same min_paths and the modified component
+#' list.
+#'
+#' @param x A [dist_structure] object.
+#' @param j Component index.
+#' @param new_component A dist-compatible object to install at position j.
+#' @return A new [dist_structure] object.
+#' @export
+substitute_component <- function(x, j, new_component) {
+  UseMethod("substitute_component")
+}
+
+
+#' Compose systems hierarchically
+#'
+#' Produce a new [dist_structure] by replacing each component of `outer`
+#' with a sub-system (either a [dist_structure] or a plain dist). The
+#' composed system's components are the flattened inner components; its
+#' min_paths enumerate the Cartesian products of inner min_paths within
+#' each outer min_path.
+#'
+#' @param outer A [dist_structure] object.
+#' @param inner_list A list of length `ncomponents(outer)`. Each element
+#'   is either a [dist_structure] or a dist (single-component sub-system).
+#' @return A `coherent_dist` representing the composed system.
+#' @export
+compose_systems <- function(outer, inner_list) {
+  UseMethod("compose_systems")
+}
