@@ -39,6 +39,8 @@ component_survivals_at <- function(x, t) {
 #' @rdname criticality_importance
 #' @export
 criticality_importance.dist_structure <- function(x, j, t) {
+  m <- ncomponents(x)
+  stopifnot(j >= 1L, j <= m, length(j) == 1L)
   S <- component_survivals_at(x, t)
   F_j <- 1 - S[j]
   F_sys <- 1 - reliability(x, S)

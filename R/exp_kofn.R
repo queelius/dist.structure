@@ -65,9 +65,8 @@ cdf.exp_kofn <- function(x, ...) {
 #' @rdname exp_kofn
 #' @export
 sampler.exp_kofn <- function(x, ...) {
-  rates <- x$rates
-  order_idx <- length(rates) - x$k + 1L
-  samplers <- lapply(rates, function(r) function(n) stats::rexp(n, rate = r))
+  order_idx <- length(x$rates) - x$k + 1L
+  samplers <- make_component_samplers(stats::rexp, rate = x$rates)
   function(n, ...) {
     apply(sample_component_matrix(samplers, n), 1L,
           function(row) sort(row)[order_idx])

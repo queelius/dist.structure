@@ -68,10 +68,8 @@ cdf.wei_kofn <- function(x, ...) {
 #' @export
 sampler.wei_kofn <- function(x, ...) {
   order_idx <- length(x$shapes) - x$k + 1L
-  samplers <- Map(
-    function(sh, sc) function(n) stats::rweibull(n, shape = sh, scale = sc),
-    x$shapes, x$scales
-  )
+  samplers <- make_component_samplers(stats::rweibull,
+                                      shape = x$shapes, scale = x$scales)
   function(n, ...) {
     apply(sample_component_matrix(samplers, n), 1L,
           function(row) sort(row)[order_idx])

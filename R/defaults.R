@@ -68,6 +68,35 @@ sample_component_matrix <- function(samplers, n) {
 }
 
 
+# Build a list of per-component sampler closures from a base stats
+# rXxx function and parallel parameter vectors. The resulting samplers
+# each take a single arg `n` and draw n independent values for that
+# component. Used by the closed-form series/parallel/kofn constructors.
+make_component_samplers <- function(rfun, ...) {
+  args <- list(...)
+  m <- length(args[[1L]])
+  lapply(seq_len(m), function(j) {
+    per_args <- lapply(args, `[[`, j)
+    function(n) do.call(rfun, c(list(n = n), per_args))
+  })
+}
+
+
+# Product-of-per-component-survivals closure for a series system where
+# each component's survival at time ti has the form
+# `pXxx(ti, ..., lower.tail = FALSE)`. `params` is a named list of
+# parameter vectors (each of length m) to pass to `pfun`. Returns a
+# function(t) that vectorises over `t`.
+series_surv_product <- function(pfun, params) {
+  function(t, ...) {
+    vapply(t, function(ti) {
+      args <- c(list(q = ti), params, list(lower.tail = FALSE))
+      prod(do.call(pfun, args))
+    }, numeric(1L))
+  }
+}
+
+
 # 2^n binary grid as an integer matrix (no col names, no expand.grid
 # attributes). Rows enumerate states in {0, 1}^n.
 binary_grid <- function(n) {

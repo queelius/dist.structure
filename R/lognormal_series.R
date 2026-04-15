@@ -46,14 +46,8 @@ lognormal_series <- function(meanlogs, sdlogs) {
 #' @param ... Ignored.
 #' @export
 surv.lognormal_series <- function(x, ...) {
-  mu <- x$meanlogs
-  sd <- x$sdlogs
-  function(t, ...) {
-    vapply(t, function(ti) {
-      prod(stats::plnorm(ti, meanlog = mu, sdlog = sd,
-                         lower.tail = FALSE))
-    }, numeric(1L))
-  }
+  series_surv_product(stats::plnorm,
+                      list(meanlog = x$meanlogs, sdlog = x$sdlogs))
 }
 
 
@@ -68,12 +62,9 @@ cdf.lognormal_series <- function(x, ...) {
 #' @rdname lognormal_series
 #' @export
 sampler.lognormal_series <- function(x, ...) {
-  mu <- x$meanlogs
-  sd <- x$sdlogs
-  m <- length(mu)
-  samplers <- lapply(seq_len(m), function(j) {
-    function(n) stats::rlnorm(n, meanlog = mu[j], sdlog = sd[j])
-  })
+  samplers <- make_component_samplers(stats::rlnorm,
+                                      meanlog = x$meanlogs,
+                                      sdlog = x$sdlogs)
   function(n, ...) {
     apply(sample_component_matrix(samplers, n), 1L, min)
   }

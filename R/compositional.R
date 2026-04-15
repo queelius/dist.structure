@@ -67,12 +67,7 @@ compose_systems.dist_structure <- function(outer, inner_list) {
     grid <- expand.grid(lapply(inner_choices, seq_along),
                         KEEP.OUT.ATTRS = FALSE)
     for (row_idx in seq_len(nrow(grid))) {
-      selected <- mapply(
-        function(idx_set, idx) idx_set[[idx]],
-        inner_choices,
-        as.integer(grid[row_idx, ]),
-        SIMPLIFY = FALSE
-      )
+      selected <- Map(`[[`, inner_choices, as.integer(grid[row_idx, ]))
       composed_paths[[length(composed_paths) + 1L]] <-
         sort(unique(unlist(selected)))
     }

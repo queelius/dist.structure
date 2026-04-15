@@ -59,8 +59,7 @@ surv.exp_parallel <- function(x, ...) {
 #' @rdname exp_parallel
 #' @export
 sampler.exp_parallel <- function(x, ...) {
-  rates <- x$rates
-  samplers <- lapply(rates, function(r) function(n) stats::rexp(n, rate = r))
+  samplers <- make_component_samplers(stats::rexp, rate = x$rates)
   function(n, ...) {
     apply(sample_component_matrix(samplers, n), 1L, max)
   }

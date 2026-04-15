@@ -48,14 +48,8 @@ gamma_series <- function(shapes, rates) {
 #' @param ... Ignored.
 #' @export
 surv.gamma_series <- function(x, ...) {
-  shapes <- x$shapes
-  rates <- x$rates
-  function(t, ...) {
-    vapply(t, function(ti) {
-      prod(stats::pgamma(ti, shape = shapes, rate = rates,
-                         lower.tail = FALSE))
-    }, numeric(1L))
-  }
+  series_surv_product(stats::pgamma,
+                      list(shape = x$shapes, rate = x$rates))
 }
 
 
@@ -70,12 +64,8 @@ cdf.gamma_series <- function(x, ...) {
 #' @rdname gamma_series
 #' @export
 sampler.gamma_series <- function(x, ...) {
-  shapes <- x$shapes
-  rates <- x$rates
-  m <- length(shapes)
-  samplers <- lapply(seq_len(m), function(j) {
-    function(n) stats::rgamma(n, shape = shapes[j], rate = rates[j])
-  })
+  samplers <- make_component_samplers(stats::rgamma,
+                                      shape = x$shapes, rate = x$rates)
   function(n, ...) {
     apply(sample_component_matrix(samplers, n), 1L, min)
   }

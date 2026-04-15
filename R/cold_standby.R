@@ -38,11 +38,19 @@
 #' [ncomponents()] and [component()] for inspection.
 #'
 #' Defaults: `sampler` is exact (sample each component independently and
-#' sum); `mean` is exact (sum of component means); `surv` and `cdf` use
-#' Monte Carlo with a default of `1e5` simulated lifetimes (override via
-#' the `mc` argument when calling `surv(x)` or by overriding the method
-#' on a specialized subclass with a closed-form aggregate distribution
-#' such as Gamma for iid exponential components).
+#' sum); `mean` is exact when every component implements `mean()`
+#' (otherwise falls back to Monte Carlo via the sampler); `surv` and
+#' `cdf` use Monte Carlo with a default of `1e5` simulated lifetimes
+#' (override via the `mc` argument). The returned `surv` / `cdf`
+#' closures cache their samples after the first call so subsequent
+#' evaluations at different `t` values are deterministic given the same
+#' `mc`.
+#'
+#' Methods inherited from `algebraic.dist::univariate_dist` that require
+#' `density` or `sup` (notably `expectation`, `vcov`) are NOT supported
+#' on cold-standby objects out of the box; specialized subclasses with
+#' closed-form aggregate distributions (e.g., iid exponential collapses
+#' to `Gamma(m, rate)`) should provide their own methods.
 #'
 #' @param components List of `dist` objects representing per-stage
 #'   component lifetimes.
@@ -90,34 +98,70 @@ sampler.cold_standby_dist <- function(x, ...) {
 
 #' Mean of a cold-standby system: sum of component means
 #'
+#' Computes `sum_j E[T_j]` exactly when every component implements a
+#' `mean()` method. Falls back to a Monte Carlo estimate from the
+#' sampler when any component lacks an exact mean (e.g., a
+#' `dist_structure` component whose `mean` would route through
+#' `algebraic.dist::univariate_dist` and require `density` / `sup`,
+#' which are not provided on `dist_structure` by default).
+#'
 #' @param x A `cold_standby_dist` object.
-#' @param ... Ignored.
+#' @param ... Passed to the Monte Carlo fallback as `mc` (default 1e5).
 #' @return Numeric scalar.
 #' @export
 mean.cold_standby_dist <- function(x, ...) {
-  sum(vapply(x$components, mean, numeric(1L)))
+  exact <- tryCatch(
+    sum(vapply(x$components, mean, numeric(1L))),
+    error = function(e) NULL
+  )
+  if (!is.null(exact)) return(exact)
+  args <- list(...)
+  mc <- if ("mc" %in% names(args)) args$mc else 1e5L
+  mean(sampler.cold_standby_dist(x)(mc))
 }
 
 
-#' Cold-standby survival via Monte Carlo
+#' Cold-standby survival via Monte Carlo (with cached samples)
 #'
 #' Estimates `S(t) = P(T_1 + ... + T_m > t)` by simulating `mc` system
-#' lifetimes and computing the empirical fraction exceeding `t`.
-#' Override on specialized subclasses (e.g., iid exponential -> Gamma)
-#' for exact closed forms.
+#' lifetimes and computing the empirical fraction exceeding `t`. The
+#' returned closure caches its sample vector: the first call generates
+#' `mc` samples, subsequent calls reuse them as long as `mc` is
+#' unchanged (a different `mc` triggers a fresh draw). This makes
+#' repeated `S(t)` calls deterministic given the same `mc`.
+#'
+#' For reproducibility across calls to `surv()` itself (i.e., between
+#' separately constructed closures), set the RNG seed externally via
+#' `set.seed()` before invoking `surv(x)`. Override the method on a
+#' subclass with an exact aggregate distribution (e.g., iid exponential
+#' collapses to `Gamma(m, rate)`) when an analytic form is available.
 #'
 #' @rdname cold_standby_dist
 #' @export
 surv.cold_standby_dist <- function(x, ...) {
   samp <- sampler.cold_standby_dist(x)
+  cache <- new.env(parent = emptyenv())
+  cache$samples <- NULL
+  cache$mc <- NA_integer_
   function(t, mc = 1e5L, ...) {
-    samples <- samp(mc)
+    mc <- as.integer(mc)
+    if (is.null(cache$samples) || cache$mc != mc) {
+      cache$samples <- samp(mc)
+      cache$mc <- mc
+    }
+    samples <- cache$samples
     vapply(t, function(ti) mean(samples > ti), numeric(1L))
   }
 }
 
 
-#' Cold-standby CDF via Monte Carlo: 1 - surv
+#' Cold-standby CDF: `1 - surv(x)(t, mc = mc)`
+#'
+#' Computes the CDF by deferring to a fresh `surv` closure. The CDF
+#' closure has its own sample cache (independent of any external `surv`
+#' closure), so `cdf(x)(t) + surv(x)(t)` is generally not exactly 1
+#' unless callers reuse a single `surv` closure: prefer
+#' `S <- surv(x); F_t <- 1 - S(t)` over computing both independently.
 #'
 #' @rdname cold_standby_dist
 #' @export
