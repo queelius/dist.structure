@@ -228,3 +228,18 @@ substitute_component <- function(x, j, new_component) {
 compose_systems <- function(outer, inner_list) {
   UseMethod("compose_systems")
 }
+
+
+#' Coerce to dist_structure
+#'
+#' Wraps a plain [algebraic.dist::dist] in a 1-component [series_dist]
+#' so that it satisfies the dist_structure protocol. Useful for
+#' polymorphic code that operates on dist_structure inputs but is also
+#' handed unwrapped distributions. A `dist_structure` is returned
+#' unchanged.
+#'
+#' @param x A dist or dist_structure.
+#' @param ... Reserved for methods.
+#' @return A [dist_structure] object.
+#' @export
+as_dist_structure <- function(x, ...) UseMethod("as_dist_structure")
