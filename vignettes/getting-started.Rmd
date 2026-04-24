@@ -108,7 +108,7 @@ Every distribution generic composes naturally:
 
 ```{r}
 set.seed(42)
-samples <- algebraic.dist::sampler(kofn)(10000)
+samples <- algebraic.dist::sampler(kofn)(5000)
 mean(samples)
 ```
 

@@ -5,12 +5,12 @@ Authors@R: person("Alexander", "Towell",
     email = "lex@metafunctor.com",
     role = c("aut", "cre"),
     comment = c(ORCID = "0000-0001-6443-9897"))
-Description: Extends the algebraic.dist distribution algebra to random
-    variables with internal structure: coherent reliability systems
-    decomposed into components arranged by a structure function (series,
-    parallel, k-out-of-n, bridge, and arbitrary topologies via minimal
-    path sets). Every 'dist_structure' object is a 'dist', so the full
-    distribution algebra (mean, vcov, sampler, surv, cdf) works
+Description: Extends the 'algebraic.dist' distribution algebra to
+    random variables with internal structure: coherent reliability
+    systems decomposed into components arranged by a structure function
+    (series, parallel, k-out-of-n, bridge, and arbitrary topologies via
+    minimal path sets). Every 'dist_structure' object is a 'dist', so
+    the full distribution algebra (mean, vcov, sampler, surv, cdf) works
     automatically via default methods that compose component-level
     distributions through the topology. Adds structural queries:
     structure function evaluation, minimal path and cut sets, system
@@ -29,10 +29,12 @@ Depends:
     R (>= 4.1.0)
 Imports:
     algebraic.dist,
+    stats,
     utils
 Suggests:
     testthat (>= 3.0.0),
     knitr,
-    rmarkdown
+    rmarkdown,
+    spelling
 VignetteBuilder: knitr
 Config/testthat/edition: 3

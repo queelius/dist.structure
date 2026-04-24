@@ -186,9 +186,9 @@ min_cuts.dist_structure <- function(x) {
   transversals <- list(integer(0))
   for (P in paths) {
     new_trans <- list()
-    for (T in transversals) {
+    for (tr in transversals) {
       for (p in P) {
-        new_trans[[length(new_trans) + 1L]] <- sort(unique(c(T, p)))
+        new_trans[[length(new_trans) + 1L]] <- sort(unique(c(tr, p)))
       }
     }
     transversals <- minimize_sets(new_trans)

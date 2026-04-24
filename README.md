@@ -64,8 +64,9 @@ sys2 <- substitute_component(sys, j = 2,
 ```
 
 See `vignette("getting-started", package = "dist.structure")` for a
-longer tour, and the Articles tab on the [pkgdown
-site](https://queelius.github.io/dist.structure/) for deeper topics.
+longer tour, and the other vignettes (`coherent-systems`,
+`distribution-interface`, `importance-measures`, `composition`,
+`non-coherent`) for deeper topics.
 
 ## Ecosystem
 

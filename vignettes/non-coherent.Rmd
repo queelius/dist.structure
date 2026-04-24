@@ -65,7 +65,7 @@ summed.
 
 ```{r}
 set.seed(1)
-x <- algebraic.dist::sampler(sys)(10000)
+x <- algebraic.dist::sampler(sys)(5000)
 mean(x)                                # empirical ~ 3.5
 ```
 
@@ -80,14 +80,14 @@ deterministic given the same `mc`:
 ```{r}
 set.seed(42)
 S <- algebraic.dist::surv(sys)
-S(c(1, 2, 3, 5), mc = 10000)          # survival at multiple t values
+S(c(1, 2, 3, 5), mc = 5000)           # survival at multiple t values
 ```
 
 A different `mc` triggers a fresh draw:
 
 ```{r}
-S(2, mc = 10000)                       # uses the same cache
-S(2, mc = 20000)                       # new cache with 20000 samples
+S(2, mc = 5000)                        # uses the same cache
+S(2, mc = 10000)                       # new cache with 10000 samples
 ```
 
 Because the cache lives inside the closure, using the same `S` closure
@@ -121,7 +121,7 @@ m <- 4; rate <- 2
 sys <- cold_standby_dist(replicate(m, exponential(rate), simplify = FALSE))
 # Monte Carlo survival at t = 3
 set.seed(1)
-mc_est <- algebraic.dist::surv(sys)(3, mc = 50000)
+mc_est <- algebraic.dist::surv(sys)(3, mc = 10000)
 # Exact via Gamma
 exact <- pgamma(3, shape = m, rate = rate, lower.tail = FALSE)
 cat(sprintf("MC: %.4f, Exact: %.4f\n", mc_est, exact))
