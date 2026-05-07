@@ -1,8 +1,38 @@
 # dist.structure 0.5.0
 
+Initial CRAN submission.
+
+## New exports
+
+* `validate_dist_structure(x)`: helper for subclass implementors.
+  Checks the class chain, presence of `ncomponents()` / `component()`,
+  and (via `getS3method` lookup) whether at least one of `phi.X` or
+  `min_paths.X` is registered. Fails fast at construction time
+  instead of at first method dispatch.
+* `min_paths.dist_structure`: default derived by enumeration from
+  `phi`. Closes a protocol gap: the contract said "provide phi or
+  min_paths" but only the phi-from-paths direction had a default;
+  users providing only `phi` previously hit "no applicable method"
+  on `min_paths()` and any default that depended on it
+  (`min_cuts`, `system_signature`, `reliability`, ...).
+* `surv.series_dist`: product of component survival functions.
+  Avoids the `2^m` reliability-polynomial enumeration in the
+  `dist_structure` default for series systems whose components are
+  not in a closed-form family.
+* `surv.parallel_dist`: `1 - prod(component CDFs)`. Same rationale
+  as `surv.series_dist`.
+* `hazard.wei_series`: closed-form additive Weibull hazard
+  `sum_j (k_j/s_j) * (t/s_j)^(k_j - 1)`.
+* `hazard.wei_kofn`, `hazard.exp_kofn`: composition of the existing
+  closed-form `density()` and `surv()`.
+* `component.dual_of_system`: delegates to the underlying original.
+  User-defined `dist_structure` subclasses that route `dual()`
+  through the lazy-wrapper path now compose with `surv()`,
+  `sampler()`, and other defaults.
+
 ## Documentation
 
-* Added six vignettes covering core workflows:
+* Added seven vignettes covering core workflows:
   - Getting started: five-minute tour of the package.
   - Coherent systems: phi, min_paths, min_cuts, signature, reliability
     polynomial, dual, critical states; series, parallel, k-of-n,
@@ -16,13 +46,43 @@
     compose_systems for hierarchical construction.
   - Non-coherent systems: cold_standby_dist and its deliberate
     exclusion from the dist_structure protocol.
+  - Implementing a dist_structure subclass: 4-step recipe with a
+    worked alarm-system example.
 * Added `README.md` with quick-tour and ecosystem context.
 * Added pkgdown configuration (`_pkgdown.yml`).
+* Per-method `@return` blocks across `dist_structure` and the
+  closed-form family topics.
+* `kofn_dist`: explicit `:G` vs `:F` convention note with
+  `@seealso` to `order_statistic`.
+* `bridge_dist`: Barlow-Proschan reference and component-role
+  description.
 
 ## Fixes
 
 * `hazard.exp_series` is now properly registered as an S3 method
   rather than being exported as a regular function.
+* `system_signature` guards against always-zero `phi` (signature is
+  undefined for non-functioning systems; previously silently
+  returned `(1, 0, ..., 0)`).
+* `mean.cold_standby_dist` falls back to Monte Carlo when component
+  means silently propagate `NA` instead of returning `NA`.
+* `coherent_dist` (and inherited by all topology shortcuts) rejects
+  `NULL` or non-`dist` components with a clear message instead of
+  letting the error surface deep in default-method dispatch.
+
+## Internal cleanup
+
+* Split `R/defaults.R`: shared numeric helpers move to
+  `R/internal-utils.R`; `defaults.R` now contains only the S3
+  default methods (165 lines down from 318).
+* Removed seven redundant `cdf` overrides; `cdf.dist_structure`
+  default produces an identical closure via dispatch.
+* `exp_parallel`: flipped so `surv` is primary, matching the
+  family convention.
+* Removed redundant `min_paths.kofn_dist` (the parent
+  `coherent_dist` already caches `combn` output as `$min_paths`).
+* Test seeds migrated to `withr::local_seed()` (auto-restore on
+  `test_that` exit); `withr` added to `Suggests`.
 
 # dist.structure 0.4.2
 
