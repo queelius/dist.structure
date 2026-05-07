@@ -16,5 +16,13 @@ min_paths(x)
 A list of integer vectors.
 }
 \description{
-Minimal path sets
+Returns the minimal subsets of \code{1:m} whose joint functioning is
+sufficient for the system to function. \code{min_paths} and \code{\link[=phi]{phi()}} are
+dual primitives in the \code{dist_structure} protocol: providing one is
+enough, the other has an enumerative default.
+}
+\seealso{
+\code{\link[=phi]{phi()}} for the dual primitive; \code{\link[=min_cuts]{min_cuts()}} for the dual
+topology query (minimal subsets whose joint failure causes system
+failure).
 }

@@ -24,3 +24,15 @@ component state vector \code{state}. By convention \code{state[j] = 1} means
 component \code{j} is functioning; \code{phi(state) = 1} means the system is
 functioning.
 }
+\details{
+\code{phi} and \code{\link[=min_paths]{min_paths()}} are dual primitives: if a subclass provides
+only \verb{phi.<class>()}, the default \code{\link[=min_paths.dist_structure]{min_paths.dist_structure()}}
+enumerates minimal subsets via \code{phi}; if a subclass provides only
+\verb{min_paths.<class>()}, the default \code{\link[=phi.dist_structure]{phi.dist_structure()}} checks
+whether \code{state} covers any minimal path. Subclasses providing both
+must keep them consistent.
+}
+\seealso{
+\code{\link[=min_paths]{min_paths()}} for the dual primitive; \code{\link[=validate_dist_structure]{validate_dist_structure()}}
+for construction-time checking.
+}

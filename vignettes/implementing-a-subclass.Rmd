@@ -48,6 +48,14 @@ Every `dist_structure` subclass provides:
    - `min_paths(x)`: a list of integer vectors enumerating minimal
      functioning component subsets.
 
+   `phi` and `min_paths` are dual: each has a default that derives from
+   the other. If you provide *both*, they must be consistent
+   (`phi(x, state) == 1` iff `state` covers some path in `min_paths(x)`).
+   Inconsistent implementations produce silently inconsistent results,
+   because `reliability` / `critical_states` / `is_coherent` route
+   through `phi` while `min_cuts` / `system_signature` route through
+   `min_paths`.
+
 Everything else has a default that derives from those four primitives.
 Defaults exist for `min_cuts`, `system_signature`, `critical_states`,
 `reliability`, `is_coherent`, `structural_importance`, `system_lifetime`,

@@ -32,18 +32,35 @@ component <- function(x, j, ...) UseMethod("component")
 #' component `j` is functioning; `phi(state) = 1` means the system is
 #' functioning.
 #'
+#' `phi` and [min_paths()] are dual primitives: if a subclass provides
+#' only `phi.<class>()`, the default [min_paths.dist_structure()]
+#' enumerates minimal subsets via `phi`; if a subclass provides only
+#' `min_paths.<class>()`, the default [phi.dist_structure()] checks
+#' whether `state` covers any minimal path. Subclasses providing both
+#' must keep them consistent.
+#'
 #' @param x A [dist_structure] object.
 #' @param state Integer or logical vector of length `ncomponents(x)` in
 #'   `{0, 1}`.
 #' @return Integer scalar, `0` or `1`.
+#' @seealso [min_paths()] for the dual primitive; [validate_dist_structure()]
+#'   for construction-time checking.
 #' @export
 phi <- function(x, state) UseMethod("phi")
 
 
 #' Minimal path sets
 #'
+#' Returns the minimal subsets of `1:m` whose joint functioning is
+#' sufficient for the system to function. `min_paths` and [phi()] are
+#' dual primitives in the `dist_structure` protocol: providing one is
+#' enough, the other has an enumerative default.
+#'
 #' @param x A [dist_structure] object.
 #' @return A list of integer vectors.
+#' @seealso [phi()] for the dual primitive; [min_cuts()] for the dual
+#'   topology query (minimal subsets whose joint failure causes system
+#'   failure).
 #' @export
 min_paths <- function(x) UseMethod("min_paths")
 

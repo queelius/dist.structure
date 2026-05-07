@@ -25,7 +25,9 @@
 #'   "univariate_dist", "continuous_dist", "dist")`.
 #'
 #' The associated S3 methods return:
-#' - `cdf()`, `surv()`: a closure `function(t, ...)`.
+#' - `surv()`: a closure `function(t, ...)`.
+#' - `cdf()` is derived via the `dist_structure` default and returns
+#'   a closure `function(t, ...)` equal to `1 - surv(x)(t)`.
 #' - `sampler()`: a closure `function(n, ...)` returning `n` random
 #'   variates from the system lifetime distribution.
 #' - `mean()`: a numeric scalar (the mean system lifetime,

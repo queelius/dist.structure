@@ -29,7 +29,9 @@ sdlog parameters.}
 
 The associated S3 methods return:
 \itemize{
-\item \code{surv()}, \code{cdf()}: a closure \verb{function(t, ...)}.
+\item \code{surv()}: a closure \verb{function(t, ...)}.
+\item \code{cdf()} is derived via the \code{dist_structure} default and returns
+a closure \verb{function(t, ...)} equal to \code{1 - surv(x)(t)}.
 \item \code{sampler()}: a closure \verb{function(n, ...)} returning \code{n} random
 variates from the system lifetime distribution.
 }

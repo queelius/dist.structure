@@ -3,18 +3,28 @@
 # ==========================================================================
 
 
-#' Virtual base class for structured distributions
+#' @title Virtual base class for structured distributions
 #'
-#' `dist_structure` is a virtual S3 class: every concrete implementation
-#' (`coherent_dist`, `series_dist`, `parallel_dist`, `kofn_dist`,
-#' `bridge_dist`, or user-defined subclasses) should include both
-#' `"dist_structure"` and the algebraic.dist ancestor `"univariate_dist"`
-#' (for system lifetime, which is scalar) plus `"dist"` in its class vector.
+#' @description
+#' `dist_structure` is the virtual S3 class for distributions whose random
+#' variable has internal component structure: coherent reliability
+#' systems decomposed into components arranged by a structure function.
+#' Every concrete implementation (`coherent_dist`, `series_dist`,
+#' `parallel_dist`, `kofn_dist`, `bridge_dist`, or user-defined
+#' subclasses) should include `"dist_structure"`, the `algebraic.dist`
+#' ancestor `"univariate_dist"`, and `"dist"` in its class vector.
 #'
+#' @details
 #' Concrete implementations provide S3 methods for the generics in this
 #' package. The minimum required methods are [ncomponents()], [component()],
 #' and one of [phi()] or [min_paths()]; every other generic has a default
 #' method on `dist_structure` that composes the primitives.
+#'
+#' If both `phi.<class>()` and `min_paths.<class>()` are provided, the
+#' implementor is responsible for keeping them consistent: `phi` derives
+#' the in-package generics `reliability`, `critical_states`, and
+#' `is_coherent`; `min_paths` derives `min_cuts` and `system_signature`.
+#' Inconsistent implementations produce silently inconsistent results.
 #'
 #' @return
 #' This help topic documents the virtual base class together with the
@@ -32,6 +42,11 @@
 #'
 #' Concrete subclasses override any of these for closed-form speed; see
 #' the closed-form specializations under the See Also entries.
+#'
+#' @seealso [validate_dist_structure()] for an implementor-side
+#'   construction-time validator. [phi()] and [min_paths()] for the
+#'   bidirectional protocol primitives. The closed-form families
+#'   ([exp_series()], [wei_kofn()], etc.) for reference implementations.
 #'
 #' @name dist_structure
 NULL
@@ -69,8 +84,17 @@ is_dist_structure <- function(x) inherits(x, "dist_structure")
 #'   informative error otherwise.
 #' @export
 #' @examples
+#' # Success: a valid dist_structure (any built-in topology shortcut works).
 #' validate_dist_structure(series_dist(replicate(3,
 #'   algebraic.dist::exponential(1), simplify = FALSE)))
+#'
+#' # Failure: an object that declares dist_structure but provides no
+#' # primitives. Wrapped in tryCatch for the example's success status.
+#' bad <- structure(list(),
+#'                  class = c("not_a_real_class", "dist_structure",
+#'                            "univariate_dist", "continuous_dist", "dist"))
+#' tryCatch(validate_dist_structure(bad),
+#'          error = function(e) conditionMessage(e))
 validate_dist_structure <- function(x) {
   if (!inherits(x, "dist_structure")) {
     stop("`x` must declare 'dist_structure' in its class chain; ",
@@ -97,6 +121,13 @@ validate_dist_structure <- function(x) {
   # provides neither, calling the dispatched generic would loop. Looking
   # for a non-default registered method on any subclass-specific class is
   # the correct check.
+  #
+  # Note: `coherent_dist` is intentionally NOT stripped from user_classes.
+  # `min_paths.coherent_dist` is registered (returns x$min_paths from the
+  # constructor), so any subclass of `coherent_dist` legitimately
+  # inherits a working min_paths implementation; validate should accept
+  # it. Stripping `coherent_dist` would incorrectly reject those
+  # subclasses.
   user_classes <- setdiff(
     class(x),
     c("dist_structure", "univariate_dist", "continuous_dist", "dist")

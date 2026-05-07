@@ -32,6 +32,15 @@ opaque "no applicable method" errors). A typical pattern:
 }\if{html}{\out{</div>}}
 }
 \examples{
+# Success: a valid dist_structure (any built-in topology shortcut works).
 validate_dist_structure(series_dist(replicate(3,
   algebraic.dist::exponential(1), simplify = FALSE)))
+
+# Failure: an object that declares dist_structure but provides no
+# primitives. Wrapped in tryCatch for the example's success status.
+bad <- structure(list(),
+                 class = c("not_a_real_class", "dist_structure",
+                           "univariate_dist", "continuous_dist", "dist"))
+tryCatch(validate_dist_structure(bad),
+         error = function(e) conditionMessage(e))
 }

@@ -35,8 +35,10 @@ exponential rates.}
 
 The associated S3 methods return:
 \itemize{
-\item \code{surv()}, \code{cdf()}, \code{density()}, \code{hazard()}: a closure \verb{function(t, ...)}
+\item \code{surv()}, \code{density()}, \code{hazard()}: a closure \verb{function(t, ...)}
 evaluating the named quantity at \code{t}.
+\item \code{cdf()} is derived via the \code{dist_structure} default and returns
+a closure \verb{function(t, ...)} equal to \code{1 - surv(x)(t)}.
 \item \code{sampler()}: a closure \verb{function(n, ...)} returning \code{n} random
 variates from the system lifetime distribution.
 \item \code{mean()}: a numeric scalar (the mean system lifetime).

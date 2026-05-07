@@ -45,15 +45,29 @@ Returns a closure \verb{function(n, ...)} that draws \code{n} system lifetimes b
 sampling each component independently and applying \code{\link[=system_lifetime]{system_lifetime()}}
 to combine.
 
-\code{dist_structure} is a virtual S3 class: every concrete implementation
-(\code{coherent_dist}, \code{series_dist}, \code{parallel_dist}, \code{kofn_dist},
-\code{bridge_dist}, or user-defined subclasses) should include both
-\code{"dist_structure"} and the algebraic.dist ancestor \code{"univariate_dist"}
-(for system lifetime, which is scalar) plus \code{"dist"} in its class vector.
+\code{dist_structure} is the virtual S3 class for distributions whose random
+variable has internal component structure: coherent reliability
+systems decomposed into components arranged by a structure function.
+Every concrete implementation (\code{coherent_dist}, \code{series_dist},
+\code{parallel_dist}, \code{kofn_dist}, \code{bridge_dist}, or user-defined
+subclasses) should include \code{"dist_structure"}, the \code{algebraic.dist}
+ancestor \code{"univariate_dist"}, and \code{"dist"} in its class vector.
 }
 \details{
 Concrete implementations provide S3 methods for the generics in this
 package. The minimum required methods are \code{\link[=ncomponents]{ncomponents()}}, \code{\link[=component]{component()}},
 and one of \code{\link[=phi]{phi()}} or \code{\link[=min_paths]{min_paths()}}; every other generic has a default
 method on \code{dist_structure} that composes the primitives.
+
+If both \verb{phi.<class>()} and \verb{min_paths.<class>()} are provided, the
+implementor is responsible for keeping them consistent: \code{phi} derives
+the in-package generics \code{reliability}, \code{critical_states}, and
+\code{is_coherent}; \code{min_paths} derives \code{min_cuts} and \code{system_signature}.
+Inconsistent implementations produce silently inconsistent results.
+}
+\seealso{
+\code{\link[=validate_dist_structure]{validate_dist_structure()}} for an implementor-side
+construction-time validator. \code{\link[=phi]{phi()}} and \code{\link[=min_paths]{min_paths()}} for the
+bidirectional protocol primitives. The closed-form families
+(\code{\link[=exp_series]{exp_series()}}, \code{\link[=wei_kofn]{wei_kofn()}}, etc.) for reference implementations.
 }
