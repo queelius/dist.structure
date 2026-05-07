@@ -46,6 +46,15 @@ unpack_inner <- function(inner) {
 
 
 #' @rdname compose_systems
+#' @details
+#' Computational note: the composed minimal-path enumeration takes the
+#' Cartesian product of inner-path choices over each outer path. For an
+#' outer system with `p` paths each of length `q`, where each inner has
+#' `r` paths, the candidate count grows as `O(p * r^q)` before
+#' deduplication. Bridge-of-bridges and similar deeply nested
+#' compositions can produce hundreds of candidates; if you find the call
+#' slow, build the composed `coherent_dist` directly with a hand-curated
+#' `min_paths` list.
 #' @export
 compose_systems.dist_structure <- function(outer, inner_list) {
   m_outer <- ncomponents(outer)
@@ -61,17 +70,19 @@ compose_systems.dist_structure <- function(outer, inner_list) {
   })
   # Composed min_paths: for each outer path P_out, take the Cartesian
   # product of inner paths for k in P_out and union their (shifted) indices.
-  composed_paths <- list()
-  for (P_out in min_paths(outer)) {
-    inner_choices <- shifted_paths[P_out]
-    grid <- expand.grid(lapply(inner_choices, seq_along),
-                        KEEP.OUT.ATTRS = FALSE)
-    for (row_idx in seq_len(nrow(grid))) {
-      selected <- Map(`[[`, inner_choices, as.integer(grid[row_idx, ]))
-      composed_paths[[length(composed_paths) + 1L]] <-
+  # Build via lapply (no quadratic list-growth cost).
+  composed_paths <- unlist(
+    lapply(min_paths(outer), function(P_out) {
+      inner_choices <- shifted_paths[P_out]
+      grid <- expand.grid(lapply(inner_choices, seq_along),
+                          KEEP.OUT.ATTRS = FALSE)
+      lapply(seq_len(nrow(grid)), function(row_idx) {
+        selected <- Map(`[[`, inner_choices, as.integer(grid[row_idx, ]))
         sort(unique(unlist(selected)))
-    }
-  }
+      })
+    }),
+    recursive = FALSE
+  )
   composed_paths <- minimize_sets(composed_paths)
   coherent_dist(
     min_paths = composed_paths,

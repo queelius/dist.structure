@@ -24,9 +24,15 @@
 #'   parameters per component.
 #' @param scales Positive numeric vector of length `m` (same length as
 #'   `shapes`): Weibull scale parameters per component.
-#' @return An object of class
+#' @return
+#' `wei_series()` returns an object of class
 #'   `c("wei_series", "series_dist", "coherent_dist", "dist_structure",
 #'   "univariate_dist", "continuous_dist", "dist")`.
+#'
+#' The associated S3 methods return:
+#' - `surv()`, `cdf()`, `hazard()`: a closure `function(t, ...)`.
+#' - `sampler()`: a closure `function(n, ...)` returning `n` random
+#'   variates from the system lifetime distribution.
 #' @examples
 #' sys <- wei_series(shapes = c(1, 2, 3), scales = c(1, 2, 3))
 #' algebraic.dist::surv(sys)(1)
@@ -51,21 +57,12 @@ wei_series <- function(shapes, scales) {
 #' @param ... Ignored.
 #' @export
 surv.wei_series <- function(x, ...) {
-  shapes <- x$shapes
-  scales <- x$scales
-  function(t, ...) {
-    vapply(t, function(ti) {
-      exp(-sum((ti / scales)^shapes))
-    }, numeric(1L))
-  }
-}
-
-
-#' @rdname wei_series
-#' @export
-cdf.wei_series <- function(x, ...) {
-  S <- surv.wei_series(x)
-  function(t, ...) 1 - S(t)
+  # exp(-sum((t/scale_j)^shape_j)) = prod_j exp(-(t/scale_j)^shape_j)
+  # = prod_j pweibull(t, shape_j, scale_j, lower.tail = FALSE).
+  # Using series_surv_product matches the gamma_series and lognormal_series
+  # implementations.
+  series_surv_product(stats::pweibull,
+                      list(shape = x$shapes, scale = x$scales))
 }
 
 
@@ -76,5 +73,25 @@ sampler.wei_series <- function(x, ...) {
                                       shape = x$shapes, scale = x$scales)
   function(n, ...) {
     apply(sample_component_matrix(samplers, n), 1L, min)
+  }
+}
+
+
+# Closed-form Weibull hazard: h_sys(t) = sum_j (k_j / s_j) * (t / s_j)^(k_j - 1).
+# Series hazards are additive, and each component's Weibull hazard has a
+# direct algebraic form, so the system hazard avoids both numerical
+# differentiation and the per-component dispatch cost of the algebraic.dist
+# fallback.
+#' @rdname wei_series
+#' @method hazard wei_series
+#' @importFrom algebraic.dist hazard
+#' @export
+hazard.wei_series <- function(x, ...) {
+  shapes <- x$shapes
+  scales <- x$scales
+  function(t, ...) {
+    vapply(t, function(ti) {
+      sum((shapes / scales) * (ti / scales)^(shapes - 1))
+    }, numeric(1L))
   }
 }

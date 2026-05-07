@@ -25,10 +25,18 @@
 #'
 #' @param shape Positive scalar: common Weibull shape.
 #' @param scales Positive numeric vector: per-component Weibull scales.
-#' @return An object of class
+#' @return
+#' `wei_homogeneous_series()` returns an object of class
 #'   `c("wei_homogeneous_series", "wei_series", "series_dist",
 #'   "coherent_dist", "dist_structure", "univariate_dist",
 #'   "continuous_dist", "dist")`.
+#'
+#' The associated S3 methods return:
+#' - `surv()`, `cdf()`: a closure `function(t, ...)`.
+#' - `sampler()`: a closure `function(n, ...)` returning `n` random
+#'   variates from the system lifetime distribution.
+#' - `mean()`: a numeric scalar (the mean system lifetime,
+#'   `aggregate_scale * gamma(1 + 1 / shape)`).
 #' @examples
 #' sys <- wei_homogeneous_series(shape = 2, scales = c(1, 2, 3))
 #' # System lifetime is Weibull(shape = 2, scale = aggregate_scale)
@@ -53,15 +61,6 @@ surv.wei_homogeneous_series <- function(x, ...) {
   k <- x$shape
   s_agg <- x$aggregate_scale
   function(t, ...) exp(-(t / s_agg)^k)
-}
-
-
-#' @rdname wei_homogeneous_series
-#' @export
-cdf.wei_homogeneous_series <- function(x, ...) {
-  k <- x$shape
-  s_agg <- x$aggregate_scale
-  function(t, ...) 1 - exp(-(t / s_agg)^k)
 }
 
 

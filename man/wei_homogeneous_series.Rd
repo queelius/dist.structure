@@ -3,7 +3,6 @@
 \name{wei_homogeneous_series}
 \alias{wei_homogeneous_series}
 \alias{surv.wei_homogeneous_series}
-\alias{cdf.wei_homogeneous_series}
 \alias{sampler.wei_homogeneous_series}
 \alias{mean.wei_homogeneous_series}
 \title{Series of Weibull components with common shape (closed form as a Weibull)}
@@ -11,8 +10,6 @@
 wei_homogeneous_series(shape, scales)
 
 \method{surv}{wei_homogeneous_series}(x, ...)
-
-\method{cdf}{wei_homogeneous_series}(x, ...)
 
 \method{sampler}{wei_homogeneous_series}(x, ...)
 
@@ -28,8 +25,17 @@ wei_homogeneous_series(shape, scales)
 \item{...}{Ignored.}
 }
 \value{
-An object of class
+\code{wei_homogeneous_series()} returns an object of class
 \code{c("wei_homogeneous_series", "wei_series", "series_dist", "coherent_dist", "dist_structure", "univariate_dist", "continuous_dist", "dist")}.
+
+The associated S3 methods return:
+\itemize{
+\item \code{surv()}, \code{cdf()}: a closure \verb{function(t, ...)}.
+\item \code{sampler()}: a closure \verb{function(n, ...)} returning \code{n} random
+variates from the system lifetime distribution.
+\item \code{mean()}: a numeric scalar (the mean system lifetime,
+\code{aggregate_scale * gamma(1 + 1 / shape)}).
+}
 }
 \description{
 Constructs a \code{dist_structure} for a series of Weibull components sharing

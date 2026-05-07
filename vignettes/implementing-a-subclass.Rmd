@@ -1,0 +1,288 @@
+---
+title: "Implementing a dist_structure subclass"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Implementing a dist_structure subclass}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(dist.structure)
+```
+
+`dist.structure` is a protocol package: the closed-form constructors
+(`exp_series`, `exp_kofn`, ...) and topology shortcuts (`series_dist`,
+`kofn_dist`, `bridge_dist`, ...) are reference implementations of an S3
+contract that anyone can extend. Downstream packages do exactly that:
+`serieshaz` adds a `dfr_dist_series` class for arbitrary dynamic-failure-rate
+series systems; `kofn` builds inference machinery on the closed-form
+k-out-of-n classes; future packages will add their own.
+
+This vignette walks through the protocol from the implementor's side: what
+to provide, what you get for free, when to override defaults for
+performance, and how to validate your subclass.
+
+## The contract: four steps
+
+Every `dist_structure` subclass provides:
+
+1. **A class chain** that includes `"dist_structure"`, `"univariate_dist"`,
+   and `"dist"`. Almost always also a sub-chain like `"coherent_dist"` if
+   the system is coherent.
+2. **`ncomponents(x)`**: number of components `m`.
+3. **`component(x, j, ...)`**: the j-th component returned as an
+   `algebraic.dist::dist` object with parameters baked in. The returned
+   dist must be independently evaluable: `surv(component(x, j))(t)`,
+   `sampler(component(x, j))(n)`, etc., must all work.
+4. **At least one of**:
+   - `phi(x, state)`: the structure function, returning 0 or 1 for any
+     binary state vector of length `m`.
+   - `min_paths(x)`: a list of integer vectors enumerating minimal
+     functioning component subsets.
+
+Everything else has a default that derives from those four primitives.
+Defaults exist for `min_cuts`, `system_signature`, `critical_states`,
+`reliability`, `is_coherent`, `structural_importance`, `system_lifetime`,
+`system_censoring`, `dual`, `surv`, `cdf`, and `sampler`.
+
+## A worked example: an alarm system
+
+Consider a fire alarm with `m` redundant smoke sensors and one master
+controller. The system **functions** if (i) at least `k` of the `m`
+sensors function AND (ii) the master controller functions. This is not
+exactly a k-out-of-n system (the master is special) and not exactly a
+series-of-(parallel-of-sensors-with-master) (the master gates everything).
+We can capture it directly as a custom `dist_structure`.
+
+### Step 1: pick a representation
+
+Components are indexed `1..m` for the sensors and `m+1` for the master.
+
+### Step 2: write the constructor
+
+```{r}
+alarm_dist <- function(k, sensor_components, master_component) {
+  m_sensors <- length(sensor_components)
+  stopifnot(k >= 1L, k <= m_sensors,
+            inherits(master_component, "dist"),
+            all(vapply(sensor_components,
+                       function(d) inherits(d, "dist"),
+                       logical(1L))))
+  structure(
+    list(
+      k = as.integer(k),
+      m_sensors = as.integer(m_sensors),
+      m = as.integer(m_sensors + 1L),
+      components = c(sensor_components, list(master_component))
+    ),
+    class = c("alarm_dist", "dist_structure",
+              "univariate_dist", "continuous_dist", "dist")
+  )
+}
+```
+
+The class chain declares membership in `dist_structure` and the
+`algebraic.dist` ancestors. We bundle the master into the components
+list so the `j`-th component is uniformly accessible.
+
+### Step 3: implement the three required generics
+
+```{r}
+ncomponents.alarm_dist <- function(x) x$m
+
+component.alarm_dist <- function(x, j, ...) {
+  stopifnot(j >= 1L, j <= x$m)
+  x$components[[j]]
+}
+
+phi.alarm_dist <- function(x, state) {
+  stopifnot(length(state) == x$m)
+  sensor_state <- state[seq_len(x$m_sensors)]
+  master_state <- state[x$m]
+  as.integer(sum(sensor_state) >= x$k && master_state == 1L)
+}
+```
+
+That's all that's strictly required by the protocol.
+
+### Step 4: validate
+
+```{r}
+sensors <- replicate(4, algebraic.dist::exponential(0.5), simplify = FALSE)
+master <- algebraic.dist::exponential(0.1)  # master is most reliable
+alarm <- alarm_dist(k = 2L, sensors, master)
+
+validate_dist_structure(alarm)
+```
+
+If we had forgotten `phi.alarm_dist`, `validate_dist_structure()` would
+have stopped with a clear error pointing at the missing primitive
+instead of letting the failure surface much later in some default
+method's dispatch.
+
+## What you get for free
+
+Every default below is now available on `alarm`:
+
+```{r}
+# Number of components
+ncomponents(alarm)
+
+# Structure function evaluation
+phi(alarm, c(1, 1, 0, 0, 1))   # 2 sensors + master alive: alarms
+phi(alarm, c(1, 1, 1, 1, 0))   # all sensors but no master: silent
+
+# Minimal cut sets (derived from phi via the Berge transversal)
+min_cuts(alarm)
+
+# Critical states for component j
+critical_states(alarm, 5L)  # the master: critical in every state where >= k sensors are alive
+
+# Reliability at uniform component reliability p
+reliability(alarm, 0.9)
+
+# Distribution algebra: system survival via component composition
+S <- algebraic.dist::surv(alarm)
+S(c(1, 5, 10))
+
+# Sampling: m independent component lifetimes, combined via system_lifetime
+withr::with_seed(1, {
+  x <- algebraic.dist::sampler(alarm)(1000)
+  mean(x)
+})
+```
+
+Notice that `min_cuts`, `critical_states`, `reliability`, `surv`, and
+`sampler` all "just work" without being implemented for `alarm_dist`.
+They composed from `ncomponents`, `component`, `phi`, and the
+component-level distribution algebra.
+
+## When to override a default
+
+Defaults are designed for correctness across all topologies. They are
+not always the fastest path. The two most common reasons to override:
+
+**1. Closed-form distributional shortcuts.**
+
+The default `surv.dist_structure` enumerates over component states via
+the reliability polynomial, which is `O(2^m)`. If your subclass has an
+analytical formula for `S_sys(t)`, override `surv` directly:
+
+```r
+surv.alarm_dist <- function(x, ...) {
+  k <- x$k
+  m_sens <- x$m_sensors
+  sensor_surv <- lapply(seq_len(m_sens),
+                        function(j) algebraic.dist::surv(component(x, j)))
+  master_surv <- algebraic.dist::surv(component(x, x$m))
+  function(t, ...) {
+    vapply(t, function(ti) {
+      # P(>= k sensors alive at ti) * P(master alive at ti).
+      ps <- vapply(sensor_surv, function(S) S(ti), numeric(1L))
+      sensor_p <- sum(vapply(seq.int(k, m_sens), function(sz) {
+        sum(vapply(utils::combn(m_sens, sz, simplify = FALSE),
+                   function(A) {
+                     prod(ps[A]) * prod(1 - ps[setdiff(seq_len(m_sens), A)])
+                   }, numeric(1L)))
+      }, numeric(1L)))
+      sensor_p * master_surv(ti)
+    }, numeric(1L))
+  }
+}
+```
+
+**2. Topology-specific shortcuts.**
+
+Closed-form `min_paths` saves the Berge transversal from rederiving them.
+For our alarm system, every minimal path is a `(k-of-m-sensors)` subset
+unioned with the master:
+
+```r
+min_paths.alarm_dist <- function(x) {
+  k <- x$k
+  m_sens <- x$m_sensors
+  master_idx <- x$m
+  lapply(utils::combn(m_sens, k, simplify = FALSE),
+         function(P) sort(c(as.integer(P), master_idx)))
+}
+```
+
+With `min_paths.alarm_dist` defined, `min_cuts(alarm)` becomes the
+default Berge transversal but starts from a small explicit list rather
+than re-deriving paths from `phi` (which it would do via the default
+chain through `binary_grid`).
+
+The general rule: **provide what you know in closed form; rely on
+defaults for the rest**. Do not pre-emptively override a default unless
+you have a reason; correctness across all dispatch chains is much easier
+when only the primitives are subclass-specific.
+
+## Inheriting from `coherent_dist`
+
+If your subclass is a coherent system, you can inherit from
+`coherent_dist` and skip step 3 entirely:
+
+```{r}
+parallel_of_master_and_sensors <- function(sensor_components, master_component) {
+  components <- c(sensor_components, list(master_component))
+  m <- length(components)
+  obj <- coherent_dist(
+    min_paths = list(seq_len(m - 1L), m),  # all sensors as one path; master as another
+    components = components,
+    m = m
+  )
+  class(obj) <- c("master_or_sensors_dist", class(obj))
+  obj
+}
+```
+
+`coherent_dist` already implements `ncomponents`, `component`, and
+`min_paths` for you; you supply only the topology-specific data
+(min_paths and components). The class chain automatically includes
+`"coherent_dist"`, so all the usual dispatch (including
+`dual.coherent_dist`, which produces a real dual `coherent_dist` instead
+of a lazy wrapper) takes over.
+
+## What the default `dual` does
+
+`dual(x)` produces the dual structure `phi_dual(state) = 1 - phi(x, 1 - state)`.
+When `x` inherits from `coherent_dist`, the `dual.coherent_dist` method
+swaps minimal paths and cuts to produce a fresh `coherent_dist`. When
+`x` is a generic `dist_structure` (your own subclass), the default
+returns a lazy wrapper of class `"dual_of_system"`. The lazy wrapper
+implements `ncomponents`, `component`, and `phi` by deferring to the
+original; everything else (signatures, importance, surv) flows through
+default methods exactly as for any other `dist_structure`.
+
+If you want `dual()` on your subclass to return something more
+specific, override:
+
+```r
+dual.alarm_dist <- function(x) {
+  # ... return a transformed alarm_dist ...
+}
+```
+
+## Cross-references
+
+- The closed-form specializations in this package (`exp_series.R`,
+  `wei_kofn.R`, etc.) are concrete examples of subclasses that override
+  `surv`, `cdf`, `sampler`, `density`, and `hazard` for speed while
+  inheriting the topology defaults.
+- `serieshaz::dfr_dist_series` is an out-of-package implementor that
+  adds a fully general dynamic-failure-rate component family while
+  participating in the protocol.
+- `kofn::kofn` is an inference layer built on top of `exp_kofn` /
+  `wei_kofn`; it does not subclass `dist_structure` itself but uses
+  the protocol heavily.
+
+For more detail on any specific generic, see the `?phi`, `?min_paths`,
+`?dual`, `?reliability`, and `?dist_structure` help pages.

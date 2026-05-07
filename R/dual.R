@@ -25,6 +25,12 @@ ncomponents.dual_of_system <- function(x) x$m
 
 
 #' @export
+component.dual_of_system <- function(x, j, ...) {
+  component(x$original, j, ...)
+}
+
+
+#' @export
 phi.dual_of_system <- function(x, state) {
   state <- as.integer(state)
   1L - phi(x$original, 1L - state)

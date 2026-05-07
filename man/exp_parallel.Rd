@@ -2,15 +2,12 @@
 % Please edit documentation in R/exp_parallel.R
 \name{exp_parallel}
 \alias{exp_parallel}
-\alias{cdf.exp_parallel}
 \alias{surv.exp_parallel}
 \alias{sampler.exp_parallel}
 \alias{mean.exp_parallel}
 \title{Parallel of exponential components (closed form)}
 \usage{
 exp_parallel(rates)
-
-\method{cdf}{exp_parallel}(x, ...)
 
 \method{surv}{exp_parallel}(x, ...)
 
@@ -26,8 +23,17 @@ exp_parallel(rates)
 \item{...}{Ignored.}
 }
 \value{
-An object of class
+\code{exp_parallel()} returns an object of class
 \code{c("exp_parallel", "parallel_dist", "coherent_dist", "dist_structure", "univariate_dist", "continuous_dist", "dist")}.
+
+The associated S3 methods return:
+\itemize{
+\item \code{cdf()}, \code{surv()}: a closure \verb{function(t, ...)}.
+\item \code{sampler()}: a closure \verb{function(n, ...)} returning \code{n} random
+variates from the system lifetime distribution.
+\item \code{mean()}: a numeric scalar (the mean system lifetime,
+computed in closed form via inclusion-exclusion).
+}
 }
 \description{
 Constructs a \code{dist_structure} representing a parallel system whose

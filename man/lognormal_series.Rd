@@ -3,15 +3,12 @@
 \name{lognormal_series}
 \alias{lognormal_series}
 \alias{surv.lognormal_series}
-\alias{cdf.lognormal_series}
 \alias{sampler.lognormal_series}
 \title{Series of independent Lognormal components (closed form)}
 \usage{
 lognormal_series(meanlogs, sdlogs)
 
 \method{surv}{lognormal_series}(x, ...)
-
-\method{cdf}{lognormal_series}(x, ...)
 
 \method{sampler}{lognormal_series}(x, ...)
 }
@@ -27,8 +24,15 @@ sdlog parameters.}
 \item{...}{Ignored.}
 }
 \value{
-An object of class
+\code{lognormal_series()} returns an object of class
 \code{c("lognormal_series", "series_dist", "coherent_dist", "dist_structure", "univariate_dist", "continuous_dist", "dist")}.
+
+The associated S3 methods return:
+\itemize{
+\item \code{surv()}, \code{cdf()}: a closure \verb{function(t, ...)}.
+\item \code{sampler()}: a closure \verb{function(n, ...)} returning \code{n} random
+variates from the system lifetime distribution.
+}
 }
 \description{
 Constructs a \code{dist_structure} for a series system whose components are

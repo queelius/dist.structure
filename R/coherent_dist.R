@@ -27,6 +27,15 @@
 #' @export
 coherent_dist <- function(min_paths, components, m = NULL) {
   stopifnot(is.list(min_paths), is.list(components))
+  is_dist <- vapply(components, function(d) inherits(d, "dist"),
+                    logical(1L))
+  if (!all(is_dist)) {
+    bad <- which(!is_dist)
+    stop(sprintf(
+      "components must all inherit from 'dist'; offending positions: %s",
+      paste(bad, collapse = ", ")
+    ), call. = FALSE)
+  }
   if (is.null(m)) {
     all_idx <- unlist(min_paths)
     m <- max(length(components),
@@ -117,6 +126,25 @@ phi.series_dist <- function(x, state) {
 min_paths.series_dist <- function(x) list(seq_len(x$m))
 
 
+# Override the dist_structure default (which evaluates the 2^m-state
+# reliability polynomial via min_path/min_cut enumeration) with the
+# closed form S_sys(t) = prod_j S_j(t). This avoids the exponential blow-up
+# for series of arbitrary components when no closed-form family-specific
+# specialization (exp_series, wei_series, etc.) applies.
+#' @export
+surv.series_dist <- function(x, ...) {
+  m <- ncomponents(x)
+  comp_surv_fns <- lapply(seq_len(m), function(j) {
+    algebraic.dist::surv(component(x, j))
+  })
+  function(t, ...) {
+    vapply(t, function(ti) {
+      prod(vapply(comp_surv_fns, function(S_j) S_j(ti), numeric(1L)))
+    }, numeric(1L))
+  }
+}
+
+
 #' Parallel system distribution
 #'
 #' A parallel system fails only when all components fail. Equivalent to
@@ -148,15 +176,43 @@ phi.parallel_dist <- function(x, state) {
 min_paths.parallel_dist <- function(x) as.list(seq_len(x$m))
 
 
+# Closed-form override: S_sys(t) = 1 - prod_j F_j(t).  Avoids the 2^m
+# reliability-polynomial enumeration for parallel systems whose component
+# family is not covered by exp_parallel.
+#' @export
+surv.parallel_dist <- function(x, ...) {
+  m <- ncomponents(x)
+  comp_cdf_fns <- lapply(seq_len(m), function(j) {
+    algebraic.dist::cdf(component(x, j))
+  })
+  function(t, ...) {
+    vapply(t, function(ti) {
+      1 - prod(vapply(comp_cdf_fns, function(F_j) F_j(ti), numeric(1L)))
+    }, numeric(1L))
+  }
+}
+
+
 #' k-out-of-n system distribution
 #'
 #' A k-out-of-n system functions if at least `k` of its `m` components
 #' function. Equivalent to the `(m - k + 1)`-th order statistic of
 #' component lifetimes.
 #'
-#' @param k Minimum functioning components for system operation.
+#' This constructor uses the **:G** convention: `k` is the number of
+#' components that must remain **functioning** for the system to function.
+#' `k = 1` is parallel; `k = m` is series. The companion `kofn` package
+#' (which depends on `dist.structure`) uses the **:F** convention, where
+#' `k` is the number of failures that trigger system failure; conversion
+#' is `k_dist = m - k_kofn + 1`. When in doubt, draw a small example:
+#' `kofn_dist(k = 2, ...)` for `m = 3` functions until two of the three
+#' components have failed.
+#'
+#' @param k Minimum functioning components for system operation (:G).
 #' @param components List of `dist` objects (length `m`).
 #' @return A `kofn_dist` inheriting from `coherent_dist`.
+#' @seealso [order_statistic()] for the closely-related order-statistic
+#'   parameterization.
 #' @export
 kofn_dist <- function(k, components) {
   stopifnot(is.list(components), length(components) >= 1L)
@@ -177,16 +233,21 @@ kofn_dist <- function(k, components) {
 #' @export
 phi.kofn_dist <- function(x, state) as.integer(sum(state) >= x$k)
 
-#' @export
-min_paths.kofn_dist <- function(x) {
-  lapply(utils::combn(x$m, x$k, simplify = FALSE), as.integer)
-}
+# min_paths.kofn_dist is intentionally absent: kofn_dist() stores
+# combn(m, k) as $min_paths at construction time, so the inherited
+# min_paths.coherent_dist (which returns x$min_paths directly) is both
+# correct and faster than recomputing combn on every call.
 
 
 #' Bridge system distribution
 #'
 #' The classical 5-component bridge reliability network with minimal
-#' path sets `{1,4}`, `{2,5}`, `{1,3,5}`, `{2,3,4}`.
+#' path sets `{1,4}`, `{2,5}`, `{1,3,5}`, `{2,3,4}`. Components 1 and 2
+#' are the input side, 4 and 5 the output side, and 3 the cross-link.
+#' The bridge is a canonical non-series, non-parallel example used
+#' throughout the reliability literature; see Barlow and Proschan (1975,
+#' "Statistical Theory of Reliability and Life Testing") for the
+#' standard treatment.
 #'
 #' @param components List of 5 `dist` objects.
 #' @return A `bridge_dist` inheriting from `coherent_dist`.

@@ -32,7 +32,7 @@ test_that("exp_series surv matches Exp(sum(rates))", {
 test_that("exp_series sampler mean matches 1 / sum(rates)", {
   rates <- c(0.5, 0.3, 0.2)
   sys <- exp_series(rates)
-  set.seed(42)
+  withr::local_seed(42)
   samples <- algebraic.dist::sampler(sys)(10000L)
   expect_equal(mean(samples), 1 / sum(rates), tolerance = 0.05)
 })
@@ -82,7 +82,7 @@ test_that("wei_series sampler produces values consistent with Monte Carlo surv",
   shapes <- c(2, 2, 2)
   scales <- c(1, 2, 3)
   sys <- wei_series(shapes, scales)
-  set.seed(1)
+  withr::local_seed(1)
   samples <- algebraic.dist::sampler(sys)(10000L)
   t0 <- 0.5
   empirical_surv <- mean(samples > t0)

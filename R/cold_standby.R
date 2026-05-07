@@ -72,6 +72,11 @@ cold_standby_dist <- function(components) {
 }
 
 
+# cold_standby_dist deliberately implements ncomponents() and component()
+# without inheriting `dist_structure`. The two generics are shared across
+# both class trees so that user code can iterate uniformly over
+# component-bearing systems regardless of whether they are coherent.
+# `is_dist_structure(cold_standby_dist(...))` returns FALSE.
 #' @export
 ncomponents.cold_standby_dist <- function(x) x$m
 
@@ -114,7 +119,10 @@ mean.cold_standby_dist <- function(x, ...) {
     sum(vapply(x$components, mean, numeric(1L))),
     error = function(e) NULL
   )
-  if (!is.null(exact)) return(exact)
+  # An exact NA propagation through `sum()` would silently return NA as
+  # the system mean; treat it the same as a missing component method and
+  # fall back to MC.
+  if (!is.null(exact) && !is.na(exact)) return(exact)
   args <- list(...)
   mc <- if ("mc" %in% names(args)) args$mc else 1e5L
   mean(sampler.cold_standby_dist(x)(mc))

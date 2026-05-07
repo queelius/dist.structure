@@ -3,15 +3,12 @@
 \name{gamma_series}
 \alias{gamma_series}
 \alias{surv.gamma_series}
-\alias{cdf.gamma_series}
 \alias{sampler.gamma_series}
 \title{Series of independent Gamma components (closed form)}
 \usage{
 gamma_series(shapes, rates)
 
 \method{surv}{gamma_series}(x, ...)
-
-\method{cdf}{gamma_series}(x, ...)
 
 \method{sampler}{gamma_series}(x, ...)
 }
@@ -27,8 +24,15 @@ Gamma rate parameters.}
 \item{...}{Ignored.}
 }
 \value{
-An object of class
+\code{gamma_series()} returns an object of class
 \code{c("gamma_series", "series_dist", "coherent_dist", "dist_structure", "univariate_dist", "continuous_dist", "dist")}.
+
+The associated S3 methods return:
+\itemize{
+\item \code{surv()}, \code{cdf()}: a closure \verb{function(t, ...)}.
+\item \code{sampler()}: a closure \verb{function(n, ...)} returning \code{n} random
+variates from the system lifetime distribution.
+}
 }
 \description{
 Constructs a \code{dist_structure} for a series system whose components are

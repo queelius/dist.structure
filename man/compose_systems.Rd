@@ -25,3 +25,13 @@ composed system's components are the flattened inner components; its
 min_paths enumerate the Cartesian products of inner min_paths within
 each outer min_path.
 }
+\details{
+Computational note: the composed minimal-path enumeration takes the
+Cartesian product of inner-path choices over each outer path. For an
+outer system with \code{p} paths each of length \code{q}, where each inner has
+\code{r} paths, the candidate count grows as \code{O(p * r^q)} before
+deduplication. Bridge-of-bridges and similar deeply nested
+compositions can produce hundreds of candidates; if you find the call
+slow, build the composed \code{coherent_dist} directly with a hand-curated
+\code{min_paths} list.
+}

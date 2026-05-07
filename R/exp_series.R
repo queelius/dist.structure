@@ -17,9 +17,17 @@
 #'
 #' @param rates Positive numeric vector of length `m`: per-component
 #'   exponential rates.
-#' @return An object of class
+#' @return
+#' `exp_series()` returns an object of class
 #'   `c("exp_series", "series_dist", "coherent_dist", "dist_structure",
 #'   "univariate_dist", "continuous_dist", "dist")`.
+#'
+#' The associated S3 methods return:
+#' - `surv()`, `cdf()`, `density()`, `hazard()`: a closure `function(t, ...)`
+#'   evaluating the named quantity at `t`.
+#' - `sampler()`: a closure `function(n, ...)` returning `n` random
+#'   variates from the system lifetime distribution.
+#' - `mean()`: a numeric scalar (the mean system lifetime).
 #' @examples
 #' sys <- exp_series(c(0.5, 0.3, 0.2))
 #' algebraic.dist::surv(sys)(1)  # equals exp(-sum(rates) * 1)
@@ -27,7 +35,7 @@
 #' @export
 exp_series <- function(rates) {
   stopifnot(is.numeric(rates), length(rates) >= 1L, all(rates > 0))
-  components <- lapply(rates, function(r) algebraic.dist::exponential(r))
+  components <- lapply(rates, algebraic.dist::exponential)
   obj <- series_dist(components)
   obj$rates <- as.numeric(rates)
   obj$total_rate <- sum(rates)
@@ -43,14 +51,6 @@ exp_series <- function(rates) {
 surv.exp_series <- function(x, ...) {
   lam <- x$total_rate
   function(t, ...) exp(-lam * t)
-}
-
-
-#' @rdname exp_series
-#' @export
-cdf.exp_series <- function(x, ...) {
-  lam <- x$total_rate
-  function(t, ...) 1 - exp(-lam * t)
 }
 
 

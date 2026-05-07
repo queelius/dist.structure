@@ -18,6 +18,24 @@
 
 \item{...}{Ignored.}
 }
+\value{
+This help topic documents the virtual base class together with the
+three distribution-algebra default methods that compose component
+distributions through the topology:
+\itemize{
+\item \code{\link[=surv.dist_structure]{surv.dist_structure()}} returns a closure \verb{function(t, ...)} that
+evaluates the system survival function via the reliability identity
+\code{S_sys(t) = R(S_1(t), ..., S_m(t))}.
+\item \code{\link[=cdf.dist_structure]{cdf.dist_structure()}} returns a closure \verb{function(t, ...)} equal
+to \code{1 - surv(x)(t)}.
+\item \code{\link[=sampler.dist_structure]{sampler.dist_structure()}} returns a closure \verb{function(n, ...)}
+that draws \code{n} independent system lifetimes by sampling each
+component and combining via \code{\link[=system_lifetime]{system_lifetime()}}.
+}
+
+Concrete subclasses override any of these for closed-form speed; see
+the closed-form specializations under the See Also entries.
+}
 \description{
 Returns a closure \verb{function(t, ...)} where \code{surv(x)(t)} equals
 \verb{reliability(x, surv(component(x, j))(t) for each j)}. This is the

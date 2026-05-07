@@ -14,5 +14,10 @@ A \code{bridge_dist} inheriting from \code{coherent_dist}.
 }
 \description{
 The classical 5-component bridge reliability network with minimal
-path sets \verb{\{1,4\}}, \verb{\{2,5\}}, \verb{\{1,3,5\}}, \verb{\{2,3,4\}}.
+path sets \verb{\{1,4\}}, \verb{\{2,5\}}, \verb{\{1,3,5\}}, \verb{\{2,3,4\}}. Components 1 and 2
+are the input side, 4 and 5 the output side, and 3 the cross-link.
+The bridge is a canonical non-series, non-parallel example used
+throughout the reliability literature; see Barlow and Proschan (1975,
+"Statistical Theory of Reliability and Life Testing") for the
+standard treatment.
 }

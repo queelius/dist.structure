@@ -3,8 +3,8 @@
 \name{wei_kofn}
 \alias{wei_kofn}
 \alias{surv.wei_kofn}
-\alias{cdf.wei_kofn}
 \alias{sampler.wei_kofn}
+\alias{hazard.wei_kofn}
 \alias{density.wei_kofn}
 \title{k-out-of-n system of independent Weibull components (closed form)}
 \usage{
@@ -12,9 +12,9 @@ wei_kofn(k, shapes, scales)
 
 \method{surv}{wei_kofn}(x, ...)
 
-\method{cdf}{wei_kofn}(x, ...)
-
 \method{sampler}{wei_kofn}(x, ...)
+
+\method{hazard}{wei_kofn}(x, ...)
 
 \method{density}{wei_kofn}(x, ...)
 }
@@ -30,14 +30,21 @@ wei_kofn(k, shapes, scales)
 \item{...}{Ignored.}
 }
 \value{
-An object of class
+\code{wei_kofn()} returns an object of class
 \code{c("wei_kofn", "kofn_dist", "coherent_dist", "dist_structure", "univariate_dist", "continuous_dist", "dist")}.
+
+The associated S3 methods return:
+\itemize{
+\item \code{surv()}, \code{cdf()}, \code{density()}, \code{hazard()}: a closure \verb{function(t, ...)}.
+\item \code{sampler()}: a closure \verb{function(n, ...)} returning \code{n} random
+variates from the system lifetime distribution.
+}
 }
 \description{
 Constructs a \code{dist_structure} for a k-out-of-m system whose components
 are independent (possibly heterogeneous) Weibulls. Closed-form \code{surv},
-\code{cdf}, and \code{sampler} via subset enumeration and component order
-statistics.
+\code{cdf}, \code{sampler}, \code{density}, and \code{hazard} via subset enumeration,
+the critical-state density formula, and component order statistics.
 }
 \examples{
 sys <- wei_kofn(k = 2, shapes = c(1, 2, 3), scales = c(1, 2, 3))

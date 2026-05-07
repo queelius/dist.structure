@@ -50,6 +50,11 @@ max_iid <- function(d, m) {
 #' failure; setting the threshold to `m - k + 1` makes the system lifetime
 #' equal `T_(k)`.
 #'
+#' The internal call is `kofn_dist(m - k + 1, ...)`: this maps the
+#' order-statistic index `k` (where `k = 1` is the minimum, `k = m` is
+#' the maximum) to the `:G` convention used by `kofn_dist` (where the
+#' `k_dist` argument is the number of functioning components required).
+#'
 #' @param d A `dist` object.
 #' @param k The order statistic index (1 = min, m = max).
 #' @param m Number of iid components.

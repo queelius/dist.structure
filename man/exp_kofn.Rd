@@ -3,8 +3,8 @@
 \name{exp_kofn}
 \alias{exp_kofn}
 \alias{surv.exp_kofn}
-\alias{cdf.exp_kofn}
 \alias{sampler.exp_kofn}
+\alias{hazard.exp_kofn}
 \alias{density.exp_kofn}
 \title{k-out-of-n system of independent exponential components (closed form)}
 \usage{
@@ -12,9 +12,9 @@ exp_kofn(k, rates)
 
 \method{surv}{exp_kofn}(x, ...)
 
-\method{cdf}{exp_kofn}(x, ...)
-
 \method{sampler}{exp_kofn}(x, ...)
+
+\method{hazard}{exp_kofn}(x, ...)
 
 \method{density}{exp_kofn}(x, ...)
 }
@@ -28,14 +28,21 @@ exp_kofn(k, rates)
 \item{...}{Ignored.}
 }
 \value{
-An object of class
+\code{exp_kofn()} returns an object of class
 \code{c("exp_kofn", "kofn_dist", "coherent_dist", "dist_structure", "univariate_dist", "continuous_dist", "dist")}.
+
+The associated S3 methods return:
+\itemize{
+\item \code{surv()}, \code{cdf()}, \code{density()}, \code{hazard()}: a closure \verb{function(t, ...)}.
+\item \code{sampler()}: a closure \verb{function(n, ...)} returning \code{n} random
+variates from the system lifetime distribution.
+}
 }
 \description{
 Constructs a \code{dist_structure} for a k-out-of-m system whose components
-are independent exponentials. Closed-form methods for \code{surv}, \code{cdf},
-and \code{sampler}; \code{density}, \code{hazard}, and \code{mean} fall back to numerical
-defaults (or can be overridden by users in specific applications).
+are independent exponentials. Closed-form methods are provided for
+\code{surv}, \code{cdf}, \code{sampler}, \code{density}, and \code{hazard}. \code{mean} falls back
+to numerical integration via the \code{dist_structure} default.
 }
 \examples{
 sys <- exp_kofn(k = 2, rates = c(1, 2, 3))

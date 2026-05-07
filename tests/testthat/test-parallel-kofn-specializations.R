@@ -29,7 +29,7 @@ test_that("exp_parallel mean matches harmonic sum for iid", {
 test_that("exp_parallel mean matches sampler empirical mean", {
   rates <- c(0.5, 1, 2)
   sys <- exp_parallel(rates)
-  set.seed(1)
+  withr::local_seed(1)
   x <- algebraic.dist::sampler(sys)(10000)
   expect_equal(mean(x), mean(sys), tolerance = 0.05)
 })
@@ -73,7 +73,7 @@ test_that("exp_kofn sampler empirical mean matches k-th order statistic (iid)", 
   # A k-of-m system fails at the (m-k+1)-th smallest time (= the i=m-k+1 order stat).
   m <- 5L; k <- 3L
   sys <- exp_kofn(k, rep(1, m))
-  set.seed(1)
+  withr::local_seed(1)
   x <- algebraic.dist::sampler(sys)(10000)
   i <- m - k + 1L
   expected_mean <- sum(1 / ((m - seq_len(i) + 1L)))
@@ -105,7 +105,7 @@ test_that("wei_kofn reduces to wei_series for k = m", {
 test_that("wei_kofn sampler survival probability matches closed-form surv", {
   shapes <- c(2, 2, 2); scales <- c(1, 2, 3)
   sys <- wei_kofn(2L, shapes, scales)
-  set.seed(1)
+  withr::local_seed(1)
   x <- algebraic.dist::sampler(sys)(10000)
   for (t0 in c(0.3, 0.8, 1.5)) {
     emp_surv <- mean(x > t0)

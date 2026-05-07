@@ -61,12 +61,53 @@ components
 \item Topology shortcuts: \code{\link[=series_dist]{series_dist()}}, \code{\link[=parallel_dist]{parallel_dist()}}, \code{\link[=kofn_dist]{kofn_dist()}},
 \code{\link[=bridge_dist]{bridge_dist()}}, \code{\link[=consecutive_k_dist]{consecutive_k_dist()}}
 \item IID convenience: \code{\link[=min_iid]{min_iid()}}, \code{\link[=max_iid]{max_iid()}}, \code{\link[=order_statistic]{order_statistic()}}
+\item Coercions: \code{\link[=as_dist_structure]{as_dist_structure()}}
+}
 }
 
-Closed-form specializations (exp_series, wei_series,
-wei_homogeneous_series) and richer importance measures
-(birnbaum_importance, criticality_importance) are deferred to later
-releases.
+\section{Closed-form specializations}{
+
+
+Fast analytical paths for common (component family, topology) pairs.
+Override the generic defaults for speed without changing semantics:
+\itemize{
+\item Series: \code{\link[=exp_series]{exp_series()}}, \code{\link[=wei_series]{wei_series()}}, \code{\link[=wei_homogeneous_series]{wei_homogeneous_series()}},
+\code{\link[=gamma_series]{gamma_series()}}, \code{\link[=lognormal_series]{lognormal_series()}}
+\item Parallel: \code{\link[=exp_parallel]{exp_parallel()}}
+\item k-out-of-n: \code{\link[=exp_kofn]{exp_kofn()}}, \code{\link[=wei_kofn]{wei_kofn()}}
+}
+}
+
+\section{Importance measures}{
+
+
+Both topology-only and reliability-aware:
+\itemize{
+\item \code{\link[=structural_importance]{structural_importance()}}: Birnbaum's structural measure (topology only)
+\item \code{\link[=birnbaum_importance]{birnbaum_importance()}}: Birnbaum's reliability measure
+\item \code{\link[=criticality_importance]{criticality_importance()}}: criticality importance
+\item \code{\link[=vesely_fussell_importance]{vesely_fussell_importance()}}: Vesely-Fussell importance
+}
+}
+
+\section{Compositional operations}{
+
+
+Build new systems from existing ones while preserving the protocol:
+\itemize{
+\item \code{\link[=substitute_component]{substitute_component()}}: replace component j with a sub-system
+\item \code{\link[=compose_systems]{compose_systems()}}: compose two systems (cartesian product of paths)
+}
+}
+
+\section{Non-coherent systems}{
+
+
+\code{\link[=cold_standby_dist]{cold_standby_dist()}} models a cold-standby spare arrangement (system
+lifetime is the sum of component lifetimes). It is deliberately \emph{not}
+a \code{dist_structure} (no static structure function), but it shares the
+\code{\link[=ncomponents]{ncomponents()}}/\code{\link[=component]{component()}} generics so user code can iterate
+uniformly.
 }
 
 \seealso{

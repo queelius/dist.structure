@@ -21,9 +21,15 @@
 #'   Gamma shape parameters.
 #' @param rates Positive numeric vector of length `m`: per-component
 #'   Gamma rate parameters.
-#' @return An object of class
+#' @return
+#' `gamma_series()` returns an object of class
 #'   `c("gamma_series", "series_dist", "coherent_dist", "dist_structure",
 #'   "univariate_dist", "continuous_dist", "dist")`.
+#'
+#' The associated S3 methods return:
+#' - `surv()`, `cdf()`: a closure `function(t, ...)`.
+#' - `sampler()`: a closure `function(n, ...)` returning `n` random
+#'   variates from the system lifetime distribution.
 #' @examples
 #' sys <- gamma_series(shapes = c(2, 3), rates = c(1, 2))
 #' algebraic.dist::surv(sys)(1)
@@ -50,14 +56,6 @@ gamma_series <- function(shapes, rates) {
 surv.gamma_series <- function(x, ...) {
   series_surv_product(stats::pgamma,
                       list(shape = x$shapes, rate = x$rates))
-}
-
-
-#' @rdname gamma_series
-#' @export
-cdf.gamma_series <- function(x, ...) {
-  S <- surv.gamma_series(x)
-  function(t, ...) 1 - S(t)
 }
 
 

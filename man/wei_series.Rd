@@ -3,17 +3,17 @@
 \name{wei_series}
 \alias{wei_series}
 \alias{surv.wei_series}
-\alias{cdf.wei_series}
 \alias{sampler.wei_series}
+\alias{hazard.wei_series}
 \title{Series of heterogeneous Weibull components (closed form)}
 \usage{
 wei_series(shapes, scales)
 
 \method{surv}{wei_series}(x, ...)
 
-\method{cdf}{wei_series}(x, ...)
-
 \method{sampler}{wei_series}(x, ...)
+
+\method{hazard}{wei_series}(x, ...)
 }
 \arguments{
 \item{shapes}{Positive numeric vector of length \code{m}: Weibull shape
@@ -27,8 +27,15 @@ parameters per component.}
 \item{...}{Ignored.}
 }
 \value{
-An object of class
+\code{wei_series()} returns an object of class
 \code{c("wei_series", "series_dist", "coherent_dist", "dist_structure", "univariate_dist", "continuous_dist", "dist")}.
+
+The associated S3 methods return:
+\itemize{
+\item \code{surv()}, \code{cdf()}, \code{hazard()}: a closure \verb{function(t, ...)}.
+\item \code{sampler()}: a closure \verb{function(n, ...)} returning \code{n} random
+variates from the system lifetime distribution.
+}
 }
 \description{
 Constructs a \code{dist_structure} representing a series system whose

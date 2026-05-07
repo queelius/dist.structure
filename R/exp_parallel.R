@@ -19,16 +19,24 @@
 #' inclusion-exclusion over the `2^m - 1` non-empty component subsets).
 #'
 #' @param rates Positive numeric vector of length `m`.
-#' @return An object of class
+#' @return
+#' `exp_parallel()` returns an object of class
 #'   `c("exp_parallel", "parallel_dist", "coherent_dist", "dist_structure",
 #'   "univariate_dist", "continuous_dist", "dist")`.
+#'
+#' The associated S3 methods return:
+#' - `cdf()`, `surv()`: a closure `function(t, ...)`.
+#' - `sampler()`: a closure `function(n, ...)` returning `n` random
+#'   variates from the system lifetime distribution.
+#' - `mean()`: a numeric scalar (the mean system lifetime,
+#'   computed in closed form via inclusion-exclusion).
 #' @examples
 #' sys <- exp_parallel(c(1, 2, 3))
 #' algebraic.dist::surv(sys)(1)
 #' @export
 exp_parallel <- function(rates) {
   stopifnot(is.numeric(rates), length(rates) >= 1L, all(rates > 0))
-  components <- lapply(rates, function(r) algebraic.dist::exponential(r))
+  components <- lapply(rates, algebraic.dist::exponential)
   obj <- parallel_dist(components)
   obj$rates <- as.numeric(rates)
   class(obj) <- c("exp_parallel", class(obj))
@@ -40,19 +48,11 @@ exp_parallel <- function(rates) {
 #' @param x An `exp_parallel` object.
 #' @param ... Ignored.
 #' @export
-cdf.exp_parallel <- function(x, ...) {
+surv.exp_parallel <- function(x, ...) {
   rates <- x$rates
   function(t, ...) {
-    vapply(t, function(ti) prod(1 - exp(-rates * ti)), numeric(1L))
+    vapply(t, function(ti) 1 - prod(1 - exp(-rates * ti)), numeric(1L))
   }
-}
-
-
-#' @rdname exp_parallel
-#' @export
-surv.exp_parallel <- function(x, ...) {
-  FF <- cdf.exp_parallel(x)
-  function(t, ...) 1 - FF(t)
 }
 
 

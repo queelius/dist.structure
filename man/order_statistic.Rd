@@ -23,6 +23,12 @@ parametrization, the system fails at the \code{(m - k + 1)}-th component
 failure; setting the threshold to \code{m - k + 1} makes the system lifetime
 equal \code{T_(k)}.
 }
+\details{
+The internal call is \code{kofn_dist(m - k + 1, ...)}: this maps the
+order-statistic index \code{k} (where \code{k = 1} is the minimum, \code{k = m} is
+the maximum) to the \verb{:G} convention used by \code{kofn_dist} (where the
+\code{k_dist} argument is the number of functioning components required).
+}
 \examples{
 # Median of 5 iid exponentials
 sys <- order_statistic(algebraic.dist::exponential(1), k = 3, m = 5)

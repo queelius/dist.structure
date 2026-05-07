@@ -45,11 +45,41 @@
 #' - Topology shortcuts: [series_dist()], [parallel_dist()], [kofn_dist()],
 #'   [bridge_dist()], [consecutive_k_dist()]
 #' - IID convenience: [min_iid()], [max_iid()], [order_statistic()]
+#' - Coercions: [as_dist_structure()]
 #'
-#' Closed-form specializations (exp_series, wei_series,
-#' wei_homogeneous_series) and richer importance measures
-#' (birnbaum_importance, criticality_importance) are deferred to later
-#' releases.
+#' @section Closed-form specializations:
+#'
+#' Fast analytical paths for common (component family, topology) pairs.
+#' Override the generic defaults for speed without changing semantics:
+#'
+#' - Series: [exp_series()], [wei_series()], [wei_homogeneous_series()],
+#'   [gamma_series()], [lognormal_series()]
+#' - Parallel: [exp_parallel()]
+#' - k-out-of-n: [exp_kofn()], [wei_kofn()]
+#'
+#' @section Importance measures:
+#'
+#' Both topology-only and reliability-aware:
+#'
+#' - [structural_importance()]: Birnbaum's structural measure (topology only)
+#' - [birnbaum_importance()]: Birnbaum's reliability measure
+#' - [criticality_importance()]: criticality importance
+#' - [vesely_fussell_importance()]: Vesely-Fussell importance
+#'
+#' @section Compositional operations:
+#'
+#' Build new systems from existing ones while preserving the protocol:
+#'
+#' - [substitute_component()]: replace component j with a sub-system
+#' - [compose_systems()]: compose two systems (cartesian product of paths)
+#'
+#' @section Non-coherent systems:
+#'
+#' [cold_standby_dist()] models a cold-standby spare arrangement (system
+#' lifetime is the sum of component lifetimes). It is deliberately *not*
+#' a `dist_structure` (no static structure function), but it shares the
+#' [ncomponents()]/[component()] generics so user code can iterate
+#' uniformly.
 #'
 #' @keywords internal
 #' @importFrom algebraic.dist cdf sampler surv

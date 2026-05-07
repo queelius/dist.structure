@@ -3,7 +3,6 @@
 \name{exp_series}
 \alias{exp_series}
 \alias{surv.exp_series}
-\alias{cdf.exp_series}
 \alias{sampler.exp_series}
 \alias{mean.exp_series}
 \alias{density.exp_series}
@@ -13,8 +12,6 @@
 exp_series(rates)
 
 \method{surv}{exp_series}(x, ...)
-
-\method{cdf}{exp_series}(x, ...)
 
 \method{sampler}{exp_series}(x, ...)
 
@@ -33,8 +30,17 @@ exponential rates.}
 \item{...}{Ignored.}
 }
 \value{
-An object of class
+\code{exp_series()} returns an object of class
 \code{c("exp_series", "series_dist", "coherent_dist", "dist_structure", "univariate_dist", "continuous_dist", "dist")}.
+
+The associated S3 methods return:
+\itemize{
+\item \code{surv()}, \code{cdf()}, \code{density()}, \code{hazard()}: a closure \verb{function(t, ...)}
+evaluating the named quantity at \code{t}.
+\item \code{sampler()}: a closure \verb{function(n, ...)} returning \code{n} random
+variates from the system lifetime distribution.
+\item \code{mean()}: a numeric scalar (the mean system lifetime).
+}
 }
 \description{
 Constructs a \code{dist_structure} representing a series system whose

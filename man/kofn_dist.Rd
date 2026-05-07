@@ -7,7 +7,7 @@
 kofn_dist(k, components)
 }
 \arguments{
-\item{k}{Minimum functioning components for system operation.}
+\item{k}{Minimum functioning components for system operation (:G).}
 
 \item{components}{List of \code{dist} objects (length \code{m}).}
 }
@@ -18,4 +18,18 @@ A \code{kofn_dist} inheriting from \code{coherent_dist}.
 A k-out-of-n system functions if at least \code{k} of its \code{m} components
 function. Equivalent to the \code{(m - k + 1)}-th order statistic of
 component lifetimes.
+}
+\details{
+This constructor uses the \strong{:G} convention: \code{k} is the number of
+components that must remain \strong{functioning} for the system to function.
+\code{k = 1} is parallel; \code{k = m} is series. The companion \code{kofn} package
+(which depends on \code{dist.structure}) uses the \strong{:F} convention, where
+\code{k} is the number of failures that trigger system failure; conversion
+is \code{k_dist = m - k_kofn + 1}. When in doubt, draw a small example:
+\code{kofn_dist(k = 2, ...)} for \code{m = 3} functions until two of the three
+components have failed.
+}
+\seealso{
+\code{\link[=order_statistic]{order_statistic()}} for the closely-related order-statistic
+parameterization.
 }

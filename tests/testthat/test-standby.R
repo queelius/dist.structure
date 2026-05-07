@@ -17,9 +17,8 @@ test_that("cold_standby_dist mean equals sum of component means", {
 test_that("cold_standby_dist of m iid Exp(rate) sampler ~ Gamma(m, rate)", {
   m <- 3L
   rate <- 2
-  sys <- cold_standby_dist(replicate(m,
-    algebraic.dist::exponential(rate), simplify = FALSE))
-  set.seed(1)
+  sys <- cold_standby_dist(iid_exp_components(m, rate))
+  withr::local_seed(1)
   x <- algebraic.dist::sampler(sys)(10000L)
   # E[Gamma(m, rate)] = m / rate
   expect_equal(mean(x), m / rate, tolerance = 0.05)
@@ -31,9 +30,8 @@ test_that("cold_standby_dist of m iid Exp(rate) sampler ~ Gamma(m, rate)", {
 test_that("cold_standby_dist surv via Monte Carlo approximates Gamma surv", {
   m <- 4L
   rate <- 1
-  sys <- cold_standby_dist(replicate(m,
-    algebraic.dist::exponential(rate), simplify = FALSE))
-  set.seed(1)
+  sys <- cold_standby_dist(iid_exp_components(m, rate))
+  withr::local_seed(1)
   S_mc <- algebraic.dist::surv(sys)
   for (ti in c(2, 4, 6)) {
     mc_estimate <- S_mc(ti, mc = 50000L)
@@ -44,9 +42,8 @@ test_that("cold_standby_dist surv via Monte Carlo approximates Gamma surv", {
 
 
 test_that("cold_standby_dist surv closure caches samples (deterministic across calls)", {
-  sys <- cold_standby_dist(replicate(3,
-    algebraic.dist::exponential(1), simplify = FALSE))
-  set.seed(42)
+  sys <- cold_standby_dist(iid_exp_components(3))
+  withr::local_seed(42)
   S <- algebraic.dist::surv(sys)
   v1 <- S(2, mc = 1000L)
   v2 <- S(2, mc = 1000L)  # same mc -> uses cached samples
@@ -57,9 +54,8 @@ test_that("cold_standby_dist surv closure caches samples (deterministic across c
 
 
 test_that("cold_standby_dist surv regenerates when mc changes", {
-  sys <- cold_standby_dist(replicate(3,
-    algebraic.dist::exponential(1), simplify = FALSE))
-  set.seed(42)
+  sys <- cold_standby_dist(iid_exp_components(3))
+  withr::local_seed(42)
   S <- algebraic.dist::surv(sys)
   v_small <- S(2, mc = 1000L)
   v_large <- S(2, mc = 5000L)
@@ -73,10 +69,9 @@ test_that("cold_standby_dist mean falls back to MC for components without exact 
   # mean() routes through univariate_dist::mean -> expectation -> sup,
   # which is not implemented for dist_structure. cold_standby_dist's
   # mean.cold_standby_dist must catch this and fall back to MC.
-  inner <- series_dist(replicate(2,
-    algebraic.dist::exponential(1), simplify = FALSE))
+  inner <- series_dist(iid_exp_components(2))
   sys <- cold_standby_dist(list(inner, algebraic.dist::exponential(1)))
-  set.seed(1)
+  withr::local_seed(1)
   m <- mean(sys)
   # Inner is min of 2 iid Exp(1) = Exp(2), mean 0.5; outer Exp(1) mean 1.
   # Total expected ~ 1.5; MC tolerance ~5%.
@@ -107,7 +102,7 @@ test_that("cold_standby_dist sampler returns positive values of correct length",
     algebraic.dist::exponential(1),
     algebraic.dist::exponential(1)
   ))
-  set.seed(1)
+  withr::local_seed(1)
   x <- algebraic.dist::sampler(sys)(50L)
   expect_length(x, 50L)
   expect_true(all(x > 0))
@@ -115,8 +110,7 @@ test_that("cold_standby_dist sampler returns positive values of correct length",
 
 
 test_that("criticality_importance validates j is in range", {
-  sys <- series_dist(replicate(3,
-    algebraic.dist::exponential(1), simplify = FALSE))
+  sys <- series_dist(iid_exp_components(3))
   expect_error(criticality_importance(sys, 0L, 0.5))
   expect_error(criticality_importance(sys, 4L, 0.5))
   expect_error(criticality_importance(sys, c(1L, 2L), 0.5))

@@ -44,7 +44,7 @@ test_that("cdf equals 1 - surv", {
 test_that("sampler returns the right number of samples", {
   sys <- series_dist(iid_exp_components(3, rate = 1))
   samp <- algebraic.dist::sampler(sys)
-  set.seed(1)
+  withr::local_seed(1)
   x <- samp(100)
   expect_length(x, 100L)
   expect_true(all(x >= 0))
@@ -56,7 +56,7 @@ test_that("sampler of series iid Exp(rate) has approximately the right mean", {
   m <- 3L
   rate <- 2
   sys <- series_dist(iid_exp_components(m, rate = rate))
-  set.seed(42)
+  withr::local_seed(42)
   x <- algebraic.dist::sampler(sys)(10000)
   expected_mean <- 1 / (m * rate)
   expect_equal(mean(x), expected_mean, tolerance = 0.05)
@@ -67,7 +67,7 @@ test_that("sampler of parallel iid has mean close to harmonic-series formula", {
   # Max of m iid Exp(1): E[max] = 1 + 1/2 + ... + 1/m
   m <- 4L
   sys <- parallel_dist(iid_exp_components(m, rate = 1))
-  set.seed(42)
+  withr::local_seed(42)
   x <- algebraic.dist::sampler(sys)(10000)
   expected_mean <- sum(1 / (1:m))
   expect_equal(mean(x), expected_mean, tolerance = 0.05)

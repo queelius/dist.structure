@@ -55,3 +55,26 @@ test_that("coherent_dist dual swaps paths and cuts", {
     lapply(min_cuts(sys), sort)
   )
 })
+
+
+test_that("dual_of_system has component() (regression: lazy-wrapper dispatch)", {
+  # The package-level closed-form classes route through dual.coherent_dist
+  # and produce a fresh coherent_dist (not a dual_of_system), so they do
+  # not exercise the lazy-wrapper path. This test directly constructs a
+  # dual_of_system to verify that component() dispatches correctly --
+  # before the C1 fix in v0.5.x, component(dual_of_system_obj, j) errored
+  # with "no applicable method", breaking surv() / sampler() defaults
+  # for any user-defined dist_structure subclass that did not also
+  # inherit coherent_dist.
+  sys <- series_dist(iid_exp_components(3))
+  dsys <- structure(
+    list(original = sys, m = ncomponents(sys)),
+    class = c("dual_of_system", "dist_structure",
+              "univariate_dist", "continuous_dist", "dist")
+  )
+
+  expect_no_error(component(dsys, 1L))
+  expect_identical(component(dsys, 1L), component(sys, 1L))
+  expect_identical(component(dsys, 2L), component(sys, 2L))
+  expect_identical(component(dsys, 3L), component(sys, 3L))
+})

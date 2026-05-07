@@ -10,7 +10,7 @@ decomposed into components via a structure function). Every
 `dist_structure` object is a `dist`, so the base algebra inherits
 automatically.
 
-Contains:
+Contains (v0.5.0):
 - Protocol: S3 generics + virtual base class `dist_structure` (inherits
   `dist`)
 - Topology defaults on `dist_structure` (phi, min_cuts, critical_states,
@@ -22,14 +22,15 @@ Contains:
   (`series_dist`, `parallel_dist`, `kofn_dist`, `bridge_dist`,
   `consecutive_k_dist`), iid constructors (`min_iid`, `max_iid`,
   `order_statistic`)
-
-Deferred to future versions:
-- v0.2: closed-form specializations (`exp_series`, `wei_series`,
-  `wei_homogeneous_series`)
-- v0.3: richer importance measures (Birnbaum reliability importance,
-  criticality, Vesely-Fussell), compositional operations
-  (compose_systems, substitute_component), coercions to algebraic.dist
-  base operations
+- Closed-form specializations: `exp_series`, `wei_series`,
+  `wei_homogeneous_series`, `gamma_series`, `lognormal_series`,
+  `exp_parallel`, `exp_kofn`, `wei_kofn`
+- Importance measures: `structural_importance`, `birnbaum_importance`,
+  `criticality_importance`, `vesely_fussell_importance`
+- Compositional operations: `substitute_component`, `compose_systems`
+- Coercions: `as_dist_structure`
+- Non-coherent systems: `cold_standby_dist` (sum-of-lifetimes; not a
+  `dist_structure`, but shares `ncomponents`/`component`)
 
 ## Protocol contract
 
@@ -49,15 +50,21 @@ Every implementation of a reliability system distribution:
 ```
 dist (algebraic.dist)
   └── univariate_dist
-        └── dist_structure (virtual)
-              └── coherent_dist
-                    ├── series_dist
-                    ├── parallel_dist
-                    ├── kofn_dist
-                    ├── bridge_dist
-                    └── consecutive_k_dist
-              └── dual_of_system (lazy wrapper)
+        ├── dist_structure (virtual)
+        │     └── coherent_dist
+        │           ├── series_dist     ── exp_series, wei_series, wei_homogeneous_series, gamma_series, lognormal_series
+        │           ├── parallel_dist   ── exp_parallel
+        │           ├── kofn_dist       ── exp_kofn, wei_kofn
+        │           ├── bridge_dist
+        │           └── consecutive_k_dist
+        │     └── dual_of_system (lazy wrapper)
+        └── cold_standby_dist (NOT a dist_structure; sum-of-lifetimes)
 ```
+
+`cold_standby_dist` deliberately sits outside `dist_structure` because
+it has no static structure function (the active component is determined
+dynamically by the failure history), but it implements `ncomponents` and
+`component` so user code can iterate uniformly across system types.
 
 ## Dependency
 
@@ -92,7 +99,10 @@ Rscript -e 'testthat::test_file("tests/testthat/test-topology.R")'
 - `R/generics.R`: S3 `UseMethod` stubs with roxygen
 - `R/defaults.R`: topology defaults (phi from min_paths, min_cuts via
   Berge transversal, critical_states, system_lifetime, system_censoring,
-  is_coherent, structural_importance, reliability)
+  is_coherent, structural_importance, reliability) plus shared numeric
+  helpers (kofn_surv_probability, series_surv_product,
+  make_component_samplers, sample_component_matrix, binary_grid,
+  permutations, minimize_sets)
 - `R/dist-defaults.R`: `surv`, `cdf`, `sampler` defaults composing
   component-level distributions through the topology
 - `R/dual.R`: default `dual` lazy wrapper and `dual_of_system` subclass
@@ -101,6 +111,15 @@ Rscript -e 'testthat::test_file("tests/testthat/test-topology.R")'
   shortcut constructors (`series_dist`, `parallel_dist`, `kofn_dist`,
   `bridge_dist`, `consecutive_k_dist`)
 - `R/iid_constructors.R`: `min_iid`, `max_iid`, `order_statistic`
+- `R/exp_series.R`, `R/wei_series.R`, `R/wei_homogeneous_series.R`,
+  `R/gamma_series.R`, `R/lognormal_series.R`: closed-form series
+  specializations
+- `R/exp_parallel.R`: closed-form parallel for exponential components
+- `R/exp_kofn.R`, `R/wei_kofn.R`: closed-form k-out-of-n
+- `R/importance.R`: Birnbaum reliability, criticality, Vesely-Fussell
+- `R/compositional.R`: `substitute_component`, `compose_systems`
+- `R/cold_standby.R`: non-coherent cold-standby spare arrangement
+- `R/coercions.R`: `as_dist_structure`
 
 ## Key design notes
 

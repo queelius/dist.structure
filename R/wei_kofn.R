@@ -11,15 +11,21 @@
 #'
 #' Constructs a `dist_structure` for a k-out-of-m system whose components
 #' are independent (possibly heterogeneous) Weibulls. Closed-form `surv`,
-#' `cdf`, and `sampler` via subset enumeration and component order
-#' statistics.
+#' `cdf`, `sampler`, `density`, and `hazard` via subset enumeration,
+#' the critical-state density formula, and component order statistics.
 #'
 #' @param k Minimum functioning components for system operation.
 #' @param shapes Positive numeric vector of length `m`.
 #' @param scales Positive numeric vector of length `m`.
-#' @return An object of class
+#' @return
+#' `wei_kofn()` returns an object of class
 #'   `c("wei_kofn", "kofn_dist", "coherent_dist", "dist_structure",
 #'   "univariate_dist", "continuous_dist", "dist")`.
+#'
+#' The associated S3 methods return:
+#' - `surv()`, `cdf()`, `density()`, `hazard()`: a closure `function(t, ...)`.
+#' - `sampler()`: a closure `function(n, ...)` returning `n` random
+#'   variates from the system lifetime distribution.
 #' @examples
 #' sys <- wei_kofn(k = 2, shapes = c(1, 2, 3), scales = c(1, 2, 3))
 #' algebraic.dist::surv(sys)(1)
@@ -58,14 +64,6 @@ surv.wei_kofn <- function(x, ...) {
 
 #' @rdname wei_kofn
 #' @export
-cdf.wei_kofn <- function(x, ...) {
-  S <- surv.wei_kofn(x)
-  function(t, ...) 1 - S(t)
-}
-
-
-#' @rdname wei_kofn
-#' @export
 sampler.wei_kofn <- function(x, ...) {
   order_idx <- length(x$shapes) - x$k + 1L
   samplers <- make_component_samplers(stats::rweibull,
@@ -74,6 +72,18 @@ sampler.wei_kofn <- function(x, ...) {
     apply(sample_component_matrix(samplers, n), 1L,
           function(row) sort(row)[order_idx])
   }
+}
+
+
+#' @rdname wei_kofn
+#' @method hazard wei_kofn
+#' @importFrom algebraic.dist hazard
+#' @export
+hazard.wei_kofn <- function(x, ...) {
+  # h_sys(t) = f_sys(t) / S_sys(t); both factors have closed forms here.
+  f_fn <- density.wei_kofn(x)
+  S_fn <- surv.wei_kofn(x)
+  function(t, ...) f_fn(t) / S_fn(t)
 }
 
 

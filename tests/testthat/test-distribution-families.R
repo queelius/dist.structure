@@ -32,7 +32,7 @@ test_that("gamma_series sampler empirical surv matches closed form", {
   shapes <- c(2, 3, 1.5)
   rates <- c(1, 0.5, 2)
   sys <- gamma_series(shapes, rates)
-  set.seed(42)
+  withr::local_seed(42)
   x <- algebraic.dist::sampler(sys)(10000L)
   for (t0 in c(0.3, 1)) {
     expect_equal(mean(x > t0), algebraic.dist::surv(sys)(t0),
@@ -67,7 +67,7 @@ test_that("lognormal_series sampler empirical surv matches closed form", {
   mu <- c(0, 1)
   sd <- c(1, 0.5)
   sys <- lognormal_series(mu, sd)
-  set.seed(42)
+  withr::local_seed(42)
   x <- algebraic.dist::sampler(sys)(20000L)
   for (t0 in c(0.5, 1.5)) {
     expect_equal(mean(x > t0), algebraic.dist::surv(sys)(t0),

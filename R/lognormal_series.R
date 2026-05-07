@@ -20,9 +20,15 @@
 #'   parameters.
 #' @param sdlogs Positive numeric vector of length `m`: per-component
 #'   sdlog parameters.
-#' @return An object of class
+#' @return
+#' `lognormal_series()` returns an object of class
 #'   `c("lognormal_series", "series_dist", "coherent_dist",
 #'   "dist_structure", "univariate_dist", "continuous_dist", "dist")`.
+#'
+#' The associated S3 methods return:
+#' - `surv()`, `cdf()`: a closure `function(t, ...)`.
+#' - `sampler()`: a closure `function(n, ...)` returning `n` random
+#'   variates from the system lifetime distribution.
 #' @examples
 #' sys <- lognormal_series(meanlogs = c(0, 1), sdlogs = c(1, 0.5))
 #' algebraic.dist::surv(sys)(1)
@@ -48,14 +54,6 @@ lognormal_series <- function(meanlogs, sdlogs) {
 surv.lognormal_series <- function(x, ...) {
   series_surv_product(stats::plnorm,
                       list(meanlog = x$meanlogs, sdlog = x$sdlogs))
-}
-
-
-#' @rdname lognormal_series
-#' @export
-cdf.lognormal_series <- function(x, ...) {
-  S <- surv.lognormal_series(x)
-  function(t, ...) 1 - S(t)
 }
 
 
