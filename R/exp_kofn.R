@@ -56,7 +56,7 @@ surv.exp_kofn <- function(x, ...) {
   k <- x$k
   function(t, ...) {
     vapply(t, function(ti) {
-      kofn_surv_probability(exp(-rates * ti), k)
+      kofn_surv_probability(stats::pexp(ti, rate = rates, lower.tail = FALSE), k)
     }, numeric(1L))
   }
 }
@@ -94,8 +94,8 @@ density.exp_kofn <- function(x, ...) {
   k <- x$k
   function(t, log = FALSE, ...) {
     vals <- vapply(t, function(ti) {
-      surv <- exp(-rates * ti)
-      dens <- rates * surv
+      surv <- stats::pexp(ti, rate = rates, lower.tail = FALSE)
+      dens <- stats::dexp(ti, rate = rates)
       kofn_density_value(dens, surv, k)
     }, numeric(1L))
     if (isTRUE(log)) log(vals) else vals

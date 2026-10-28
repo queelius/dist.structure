@@ -53,7 +53,7 @@ exp_parallel <- function(rates) {
 surv.exp_parallel <- function(x, ...) {
   rates <- x$rates
   function(t, ...) {
-    vapply(t, function(ti) 1 - prod(1 - exp(-rates * ti)), numeric(1L))
+    vapply(t, function(ti) 1 - prod(stats::pexp(ti, rate = rates)), numeric(1L))
   }
 }
 

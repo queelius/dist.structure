@@ -1,3 +1,11 @@
+# dist.structure 0.5.1
+
+* Exponential and Weibull closed-form systems now respect non-negative
+  lifetime support. Their survival functions return one before time zero,
+  CDFs return zero, and analytical densities and hazards return zero.
+  Component probabilities are evaluated through the base R distribution
+  functions, consistently with the existing Gamma and log-normal methods.
+
 # dist.structure 0.5.0
 
 Initial CRAN submission.

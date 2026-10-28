@@ -52,7 +52,7 @@ exp_series <- function(rates) {
 #' @export
 surv.exp_series <- function(x, ...) {
   lam <- x$total_rate
-  function(t, ...) exp(-lam * t)
+  function(t, ...) stats::pexp(t, rate = lam, lower.tail = FALSE)
 }
 
 
@@ -85,6 +85,7 @@ density.exp_series <- function(x, ...) {
 hazard.exp_series <- function(x, ...) {
   lam <- x$total_rate
   function(t, log.p = FALSE, ...) {
-    rep(if (isTRUE(log.p)) log(lam) else lam, length(t))
+    values <- ifelse(t < 0, 0, lam)
+    if (isTRUE(log.p)) log(values) else values
   }
 }

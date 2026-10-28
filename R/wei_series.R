@@ -93,6 +93,7 @@ hazard.wei_series <- function(x, ...) {
   scales <- x$scales
   function(t, ...) {
     vapply(t, function(ti) {
+      if (isTRUE(ti < 0)) return(0)
       sum((shapes / scales) * (ti / scales)^(shapes - 1))
     }, numeric(1L))
   }

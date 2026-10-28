@@ -62,7 +62,8 @@ wei_homogeneous_series <- function(shape, scales) {
 surv.wei_homogeneous_series <- function(x, ...) {
   k <- x$shape
   s_agg <- x$aggregate_scale
-  function(t, ...) exp(-(t / s_agg)^k)
+  function(t, ...) stats::pweibull(t, shape = k, scale = s_agg,
+                                  lower.tail = FALSE)
 }
 
 

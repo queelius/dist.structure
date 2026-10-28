@@ -58,7 +58,8 @@ surv.wei_kofn <- function(x, ...) {
   k <- x$k
   function(t, ...) {
     vapply(t, function(ti) {
-      kofn_surv_probability(exp(-(ti / scales)^shapes), k)
+      kofn_surv_probability(stats::pweibull(ti, shape = shapes,
+                                           scale = scales, lower.tail = FALSE), k)
     }, numeric(1L))
   }
 }
@@ -99,7 +100,8 @@ density.wei_kofn <- function(x, ...) {
   m <- length(shapes)
   function(t, log = FALSE, ...) {
     vals <- vapply(t, function(ti) {
-      surv <- exp(-(ti / scales)^shapes)
+      surv <- stats::pweibull(ti, shape = shapes, scale = scales,
+                              lower.tail = FALSE)
       dens <- vapply(seq_len(m), function(j) {
         stats::dweibull(ti, shape = shapes[j], scale = scales[j])
       }, numeric(1L))
